@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- HELPER FUNCTIONS ---
+
+    // Check if user is logged in
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if the user is accessing their own data
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Check if the user is an Admin
+    // We check the specific email (hardcoded in constants.ts) OR the role in the users collection
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email == 'admin@canteen.com' || 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN'
+      );
+    }
+
+    // --- COLLECTION RULES ---
+
+    // 1. Users Collection
+    // - Users can read and write their own profile
+    // - Admins can read all profiles (useful for dashboard)
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+    }
+
+    // 2. Menu Items
+    // - Public Read: Everyone needs to see the menu
+    // - Admin Write: Only admin can add/edit items
+    match /menuItems/{itemId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 3. Orders
+    // - Read: Admin sees all, Users see only their own
+    // - Create: Authenticated users can create orders (must match their UID)
+    // - Update: Only Admin can update status (e.g., to READY or COMPLETED)
+    match /orders/{orderId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin(); 
+    }
+
+    // 4. Time Slots
+    // - Read: Public (to show availability)
+    // - Write: Authenticated users need to write here to increment 'currentOrders' 
+    //   during the checkout transaction.
+    match /timeSlots/{slotId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+  }
+}
