@@ -2,7 +2,7 @@ import React from 'react';
 import { useCart } from '../contexts/CartContext';
 import { formatPrice } from '../utils/formatters';
 import { X, Minus, Plus, ShoppingBag } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '../contexts/AuthContext';
 import { ROUTES } from '../constants';
 
 export const CartDrawer: React.FC = () => {

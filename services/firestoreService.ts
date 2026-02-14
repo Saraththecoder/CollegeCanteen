@@ -87,7 +87,8 @@ export const createOrder = async (
   items: MenuItem[], 
   quantities: Record<string, number>,
   slotId: string,
-  slotDate: Date
+  slotDate: Date,
+  transactionId: string
 ): Promise<string> => {
   
   const totalAmount = items.reduce((sum, item) => sum + (item.price * quantities[item.id]), 0);
@@ -134,9 +135,10 @@ export const createOrder = async (
         userEmail,
         items: orderItems,
         totalAmount,
-        status: OrderStatus.PENDING, // Changed from CONFIRMED to PENDING
+        status: OrderStatus.PENDING, 
         scheduledTime: Timestamp.fromDate(slotDate),
         slotId,
+        transactionId,
         createdAt: Timestamp.now()
       };
       
@@ -152,7 +154,6 @@ export const createOrder = async (
 
 // --- USER ORDERS ---
 export const subscribeToUserOrders = (userId: string, callback: (orders: Order[]) => void) => {
-  // Query only by userId to avoid requiring a Composite Index (userId + createdAt)
   const q = query(
     collection(db, 'orders'), 
     where('userId', '==', userId)
@@ -160,7 +161,6 @@ export const subscribeToUserOrders = (userId: string, callback: (orders: Order[]
   
   return onSnapshot(q, (snapshot) => {
     const orders = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Order));
-    // Client-side sort to fix index error
     orders.sort((a, b) => {
        const tA = a.createdAt?.toMillis() || 0;
        const tB = b.createdAt?.toMillis() || 0;
@@ -175,12 +175,10 @@ export const subscribeToUserOrders = (userId: string, callback: (orders: Order[]
 
 // --- ADMIN ---
 export const subscribeToAllOrders = (callback: (orders: Order[]) => void) => {
-  // Use simple collection query + client side sort to avoid Index issues
   const q = query(collection(db, 'orders'));
   
   return onSnapshot(q, (snapshot) => {
     const orders = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Order));
-    // Client-side sort
     orders.sort((a, b) => {
        const tA = a.createdAt?.toMillis() || 0;
        const tB = b.createdAt?.toMillis() || 0;
@@ -197,7 +195,6 @@ export const updateOrderStatus = async (orderId: string, status: OrderStatus) =>
   return updateDoc(doc(db, 'orders', orderId), { status });
 };
 
-// Seed function for demo purposes
 export const seedMenu = async () => {
   const items = [
     { name: 'Avocado Toast', description: 'Sourdough, smashed avocado, chili flakes', price: 12, category: ProductCategory.Breakfast, preparationTime: 10, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1588137372308-15f75323ca8d?auto=format&fit=crop&w=800&q=80' },

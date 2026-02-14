@@ -3,9 +3,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { subscribeToAllOrders, updateOrderStatus, getAllMenuItemsAdmin, addMenuItem, updateMenuItem } from '../services/firestoreService';
 import { Order, OrderStatus, MenuItem, ProductCategory } from '../types';
 import { formatTime, formatPrice } from '../utils/formatters';
-import { Navigate } from 'react-router-dom';
+import { Navigate } from '../contexts/AuthContext';
 import { ROUTES } from '../constants';
-import { Utensils, Plus, Image as ImageIcon, X, Coffee, List } from 'lucide-react';
+import { Utensils, Plus, Image as ImageIcon, X, Coffee, List, Copy, Check } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const { user, isAdmin } = useAuth();
@@ -16,6 +16,7 @@ export const AdminDashboard: React.FC = () => {
   const [activeOrderTab, setActiveOrderTab] = useState<'active' | 'completed'>('active');
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [loadingMenu, setLoadingMenu] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [newItem, setNewItem] = useState<Partial<MenuItem>>({
     name: '',
@@ -44,7 +45,7 @@ export const AdminDashboard: React.FC = () => {
     }
   }, [view, isAdmin, isAddingItem]);
 
-  if (!user || !isAdmin) return <Navigate to={ROUTES.HOME} />;
+  if (!user || !isAdmin) return <Navigate to={ROUTES.HOME} replace />;
 
   const handleStatusUpdate = async (orderId: string, newStatus: OrderStatus) => {
     try {
@@ -81,6 +82,12 @@ export const AdminDashboard: React.FC = () => {
       console.error("Failed to add item", e);
       alert("Failed to add item. Check permissions.");
     }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(text);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const activeOrders = orders.filter(o => [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY].includes(o.status));
@@ -141,14 +148,32 @@ export const AdminDashboard: React.FC = () => {
                     <div className="absolute top-0 left-0 right-0 bg-white text-black text-xs font-bold text-center py-1 uppercase tracking-widest animate-pop">Ready for Pickup</div>
                 )}
                 
-                <div className={`flex justify-between items-start mb-6 ${order.status === OrderStatus.READY ? 'mt-4' : ''}`}>
+                <div className={`flex justify-between items-start mb-4 ${order.status === OrderStatus.READY ? 'mt-4' : ''}`}>
                   <div>
                     <h3 className="font-bold text-xl text-white">{order.userEmail.split('@')[0]}</h3>
                     <span className="font-mono text-xs text-gray-500">#{order.id.slice(0, 6)}</span>
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-mono font-medium text-white">{formatTime(order.scheduledTime)}</p>
+                    <p className="text-xs text-gray-400 font-mono mt-1">{formatPrice(order.totalAmount)}</p>
                   </div>
+                </div>
+
+                {/* Transaction ID Display */}
+                <div className="bg-gray-900 border border-gray-800 p-2 mb-4 flex items-center justify-between">
+                  <div>
+                    <span className="block text-[10px] text-gray-500 uppercase tracking-wider">Transaction ID</span>
+                    <span className="text-xs font-mono text-white">{order.transactionId || 'N/A'}</span>
+                  </div>
+                  {order.transactionId && (
+                    <button 
+                      onClick={() => copyToClipboard(order.transactionId)}
+                      className="text-gray-400 hover:text-white p-1"
+                      title="Copy ID"
+                    >
+                      {copiedId === order.transactionId ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                    </button>
+                  )}
                 </div>
 
                 <div className="border-t border-b border-gray-800 py-4 mb-6 space-y-2">
@@ -165,7 +190,7 @@ export const AdminDashboard: React.FC = () => {
                       onClick={() => handleStatusUpdate(order.id, OrderStatus.CONFIRMED)}
                       className="col-span-2 flex items-center justify-center gap-2 bg-white text-black py-3 text-xs font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors duration-200"
                     >
-                      Accept Order
+                      Verify & Accept
                     </button>
                   )}
                   {order.status === OrderStatus.CONFIRMED && (
@@ -198,7 +223,7 @@ export const AdminDashboard: React.FC = () => {
                       onClick={() => handleStatusUpdate(order.id, OrderStatus.CANCELLED)}
                       className="col-span-2 text-center text-xs text-gray-500 hover:text-red-500 hover:underline mt-1 transition-colors duration-200"
                     >
-                      Cancel
+                      Reject / Cancel
                     </button>
                   )}
                 </div>
@@ -207,134 +232,6 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
       )}
-
-      {view === 'menu' && (
-        <div className="animate-fade-in space-y-8">
-          {!isAddingItem ? (
-             <button 
-               onClick={() => setIsAddingItem(true)}
-               className="flex items-center gap-2 bg-white text-black px-8 py-4 text-sm font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors"
-             >
-               <Plus className="w-4 h-4" /> Add Item
-             </button>
-          ) : (
-            <div className="bg-black border border-white p-8 max-w-2xl animate-fade-in">
-              <div className="flex justify-between items-center mb-8 border-b border-white pb-4">
-                <h2 className="text-2xl font-serif font-bold text-white">New Item</h2>
-                <button onClick={() => setIsAddingItem(false)} className="text-gray-400 hover:text-white transition-colors"><X className="w-6 h-6" /></button>
-              </div>
-              
-              <form onSubmit={handleAddItem} className="space-y-6">
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Name</label>
-                    <input 
-                      required
-                      type="text" 
-                      value={newItem.name}
-                      onChange={e => setNewItem({...newItem, name: e.target.value})}
-                      className="w-full bg-black border border-gray-700 px-4 py-3 focus:border-white text-white outline-none transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Price</label>
-                    <input 
-                      required
-                      type="number" 
-                      step="0.01"
-                      value={newItem.price}
-                      onChange={e => setNewItem({...newItem, price: parseFloat(e.target.value)})}
-                      className="w-full bg-black border border-gray-700 px-4 py-3 focus:border-white text-white outline-none transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                   <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Description</label>
-                   <textarea 
-                      required
-                      value={newItem.description}
-                      onChange={e => setNewItem({...newItem, description: e.target.value})}
-                      className="w-full bg-black border border-gray-700 px-4 py-3 focus:border-white text-white outline-none h-24 resize-none"
-                    />
-                </div>
-
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Category</label>
-                    <select 
-                      value={newItem.category}
-                      onChange={e => setNewItem({...newItem, category: e.target.value as ProductCategory})}
-                      className="w-full bg-black border border-gray-700 px-4 py-3 focus:border-white text-white outline-none"
-                    >
-                      {Object.values(ProductCategory).map(c => (
-                        <option key={c} value={c} className="capitalize bg-black">{c}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Prep (min)</label>
-                    <input 
-                      required
-                      type="number" 
-                      value={newItem.preparationTime}
-                      onChange={e => setNewItem({...newItem, preparationTime: parseInt(e.target.value)})}
-                      className="w-full bg-black border border-gray-700 px-4 py-3 focus:border-white text-white outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Image URL</label>
-                  <input 
-                    required
-                    type="url" 
-                    placeholder="https://..."
-                    value={newItem.imageUrl}
-                    onChange={e => setNewItem({...newItem, imageUrl: e.target.value})}
-                    className="w-full bg-black border border-gray-700 px-4 py-3 focus:border-white text-white outline-none"
-                  />
-                </div>
-
-                <div className="pt-6 flex justify-end gap-4">
-                  <button type="button" onClick={() => setIsAddingItem(false)} className="px-6 py-3 text-sm font-bold uppercase tracking-widest text-gray-400 hover:text-white transition-colors">Cancel</button>
-                  <button type="submit" className="px-8 py-3 bg-white text-black text-sm font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors">Save</button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             {menuItems.map(item => (
-               <div key={item.id} className={`flex gap-6 p-4 border transition-all duration-300 animate-fade-in ${!item.isAvailable ? 'opacity-50 border-dashed border-gray-700 bg-gray-900' : 'border-gray-800 bg-black'}`}>
-                 <div className="w-24 h-24 bg-gray-900 flex-shrink-0">
-                   <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                 </div>
-                 
-                 <div className="flex-grow flex flex-col justify-between py-1">
-                   <div>
-                     <div className="flex justify-between items-start">
-                       <h3 className="font-bold text-white text-lg">{item.name}</h3>
-                       <span className="font-mono text-sm text-gray-400">{formatPrice(item.price)}</span>
-                     </div>
-                     <p className="text-sm text-gray-500 line-clamp-1 mt-1">{item.description}</p>
-                   </div>
-
-                   <div className="flex items-center justify-between mt-2">
-                      <button 
-                        onClick={() => handleToggleAvailability(item.id, item.isAvailable)}
-                        className={`text-xs font-bold uppercase tracking-widest underline underline-offset-4 transition-colors duration-200 ${item.isAvailable ? 'text-white' : 'text-gray-500'}`}
-                      >
-                        {item.isAvailable ? 'Active' : 'Sold Out'}
-                      </button>
-                   </div>
-                 </div>
-               </div>
-             ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
-const Image = ({ as: Component, ...props }: any) => <Component {...props} />;

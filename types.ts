@@ -45,8 +45,8 @@ export interface TimeSlot {
 }
 
 export enum OrderStatus {
-  PENDING = 'PENDING',
-  CONFIRMED = 'CONFIRMED',
+  PENDING = 'PENDING', // Waiting for admin verification
+  CONFIRMED = 'CONFIRMED', // Admin verified payment
   PREPARING = 'PREPARING',
   READY = 'READY',
   COMPLETED = 'COMPLETED',
@@ -67,5 +67,6 @@ export interface Order {
   status: OrderStatus;
   scheduledTime: Timestamp; // The start time of the slot
   slotId: string;
+  transactionId: string; // UPI UTR or Transaction ID
   createdAt: Timestamp;
 }

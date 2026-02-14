@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { 
   User, 
   onAuthStateChanged, 
@@ -12,6 +12,90 @@ import { auth, googleProvider, db } from '../firebase';
 import { ADMIN_EMAIL } from '../constants';
 import { UserProfile, UserRole } from '../types';
 import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+
+// --- Simple Router Implementation (Replaces react-router-dom) ---
+const RouterContext = createContext<{ path: string; navigate: (path: string, options?: { replace?: boolean }) => void }>({ path: '/', navigate: () => {} });
+
+export const HashRouter: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [path, setPath] = useState(window.location.hash.slice(1) || '/');
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setPath(window.location.hash.slice(1) || '/');
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const navigate = useCallback((newPath: string, options?: { replace?: boolean }) => {
+    if (options?.replace) {
+      window.location.replace('#' + newPath);
+    } else {
+      window.location.hash = newPath;
+    }
+  }, []);
+
+  const value = useMemo(() => ({ path, navigate }), [path, navigate]);
+
+  return (
+    <RouterContext.Provider value={value}>
+      {children}
+    </RouterContext.Provider>
+  );
+};
+
+export const useLocation = () => {
+  const { path } = useContext(RouterContext);
+  return { pathname: path };
+};
+
+export const useNavigate = () => {
+  const { navigate } = useContext(RouterContext);
+  return useCallback((to: string | number, options?: { replace?: boolean }) => {
+    if (typeof to === 'number') {
+      window.history.go(to);
+    } else {
+      navigate(to, options);
+    }
+  }, [navigate]);
+};
+
+export const Link: React.FC<{ to: string; children: React.ReactNode; className?: string }> = ({ to, children, className }) => {
+  return (
+    <a href={`#${to}`} className={className}>
+      {children}
+    </a>
+  );
+};
+
+export const Routes: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { path } = useContext(RouterContext);
+  let matchedElement: React.ReactNode = null;
+
+  React.Children.forEach(children, (child) => {
+    if (matchedElement) return;
+    if (React.isValidElement(child)) {
+      const props = child.props as Record<string, any>;
+      if (props.path === path) {
+        matchedElement = props.element;
+      }
+    }
+  });
+  
+  return <>{matchedElement}</>;
+};
+
+export const Route: React.FC<{ path: string; element: React.ReactNode }> = () => null;
+
+export const Navigate: React.FC<{ to: string; replace?: boolean }> = ({ to, replace }) => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    navigate(to, { replace });
+  }, [to, replace, navigate]);
+  return null;
+};
+
+// --- Auth Context ---
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -47,8 +131,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
           // Define profile data
-          // FIX: Use Timestamp.now() for local state to match UserProfile interface. 
-          // serverTimestamp() is for writes only and returns a FieldValue, not a Timestamp.
           const profile: UserProfile = {
             uid: firebaseUser.uid,
             email: firebaseUser.email || '',

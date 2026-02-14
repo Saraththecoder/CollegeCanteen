@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate } from '../contexts/AuthContext';
 import { ROUTES, ADMIN_EMAIL } from '../constants';
 import { AlertTriangle, Info } from 'lucide-react';
 
@@ -18,7 +18,7 @@ export const Login: React.FC = () => {
   const [localError, setLocalError] = useState('');
 
   if (loading) return null;
-  if (user) return <Navigate to={ROUTES.HOME} />;
+  if (user) return <Navigate to={ROUTES.HOME} replace />;
 
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
