@@ -9,7 +9,6 @@ export const Home: React.FC = () => {
   const { user } = useAuth();
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [usingMockData, setUsingMockData] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -29,19 +28,13 @@ export const Home: React.FC = () => {
               await seedMenu();
               data = await getMenuItems();
             } catch (e) {
-              setUsingMockData(true);
               data = MOCK_MENU_ITEMS;
             }
           } else {
-             setUsingMockData(true);
              data = MOCK_MENU_ITEMS;
           }
         }
         
-        if (data.length > 0 && data[0].id.startsWith('mock')) {
-          setUsingMockData(true);
-        }
-
         setItems(data);
       } catch (err) {
         console.error("Unexpected error in Home", err);

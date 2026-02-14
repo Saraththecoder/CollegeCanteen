@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Copy, Check, AlertCircle, Terminal, Settings } from 'lucide-react';
+import { Copy, Check, AlertCircle, Terminal } from 'lucide-react';
 import { APP_NAME } from '../constants';
 
 export const FirebaseSetup: React.FC = () => {

@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { 
-  User, 
   onAuthStateChanged, 
   signInWithPopup, 
   signOut, 
@@ -11,7 +10,7 @@ import {
 import { auth, googleProvider, db } from '../firebase';
 import { ADMIN_EMAIL } from '../constants';
 import { UserProfile, UserRole } from '../types';
-import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 
 // --- Simple Router Implementation (Replaces react-router-dom) ---
 const RouterContext = createContext<{ path: string; navigate: (path: string, options?: { replace?: boolean }) => void }>({ path: '/', navigate: () => {} });

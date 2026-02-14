@@ -7,14 +7,12 @@ import {
   runTransaction, 
   query, 
   where, 
-  orderBy, 
   Timestamp,
-  serverTimestamp,
   onSnapshot,
   setDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { MenuItem, Order, OrderStatus, TimeSlot, UserRole, ProductCategory } from '../types';
+import { MenuItem, Order, OrderStatus, TimeSlot, ProductCategory } from '../types';
 import { MAX_ORDERS_PER_SLOT } from '../constants';
 
 // Mock data for fallback when Firestore permissions are missing

@@ -5,7 +5,7 @@ import { useNavigate, Navigate } from '../contexts/AuthContext';
 import { createOrder } from '../services/firestoreService';
 import { generateTimeSlots, formatTime, formatPrice } from '../utils/formatters';
 import { ROUTES } from '../constants';
-import { Loader2, ArrowLeft, QrCode } from 'lucide-react';
+import { ArrowLeft, QrCode } from 'lucide-react';
 import { UPIPayment } from '../components/UPIPayment';
 
 export const Checkout: React.FC = () => {

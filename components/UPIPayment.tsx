@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { UPI_VPA, UPI_PAYEE_NAME, CURRENCY_SYMBOL } from '../constants';
+import { UPI_VPA, UPI_PAYEE_NAME } from '../constants';
 import { formatPrice } from '../utils/formatters';
 import { Loader2, Send } from 'lucide-react';
 
