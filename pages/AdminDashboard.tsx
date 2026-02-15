@@ -13,7 +13,8 @@ import { Order, OrderStatus, MenuItem, ProductCategory } from '../types';
 import { formatTime, formatPrice } from '../utils/formatters';
 import { Navigate } from '../contexts/AuthContext';
 import { ROUTES } from '../constants';
-import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2 } from 'lucide-react';
+import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2, Wand2, Flame } from 'lucide-react';
+import { GoogleGenAI, Type } from "@google/genai";
 
 export const AdminDashboard: React.FC = () => {
   const { user, isAdmin } = useAuth();
@@ -38,6 +39,7 @@ export const AdminDashboard: React.FC = () => {
   
   // Add Item Form State
   const [isAddingItem, setIsAddingItem] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [newItem, setNewItem] = useState({
     name: '',
     description: '',
@@ -45,6 +47,7 @@ export const AdminDashboard: React.FC = () => {
     category: ProductCategory.Snacks,
     imageUrl: '',
     preparationTime: '10',
+    calories: '',
     isAvailable: true
   });
 
@@ -148,6 +151,43 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  const generateDetails = async () => {
+    if (!newItem.name.trim()) return;
+    setIsGenerating(true);
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-latest',
+            contents: `Generate a short, enticing menu description (max 15 words) and estimate calories for a dish named "${newItem.name}".`,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        description: { type: Type.STRING },
+                        calories: { type: Type.INTEGER }
+                    }
+                }
+            }
+        });
+
+        const text = response.text;
+        if (text) {
+            const data = JSON.parse(text);
+            setNewItem(prev => ({
+                ...prev,
+                description: prev.description || data.description || '',
+                calories: prev.calories || (data.calories ? data.calories.toString() : '')
+            }));
+        }
+    } catch (e) {
+        console.error("AI Generation failed", e);
+        // Fallback or silent fail
+    } finally {
+        setIsGenerating(false);
+    }
+  };
+
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -158,12 +198,13 @@ export const AdminDashboard: React.FC = () => {
         category: newItem.category,
         imageUrl: newItem.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c',
         preparationTime: parseInt(newItem.preparationTime),
-        isAvailable: newItem.isAvailable
+        isAvailable: newItem.isAvailable,
+        calories: newItem.calories ? parseInt(newItem.calories) : undefined
       });
       setIsAddingItem(false);
       setNewItem({
         name: '', description: '', price: '', category: ProductCategory.Snacks, 
-        imageUrl: '', preparationTime: '10', isAvailable: true
+        imageUrl: '', preparationTime: '10', calories: '', isAvailable: true
       });
       loadInventory();
     } catch (error: any) {
@@ -235,13 +276,37 @@ export const AdminDashboard: React.FC = () => {
                   <button type="button" onClick={() => setIsAddingItem(false)}><X className="text-gray-400 hover:text-white" /></button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   <input required placeholder="Item Name" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} className="bg-black border border-gray-700 p-3 text-white outline-none focus:border-white" />
+                   <div className="md:col-span-2 relative">
+                     <input 
+                        required 
+                        placeholder="Item Name" 
+                        value={newItem.name} 
+                        onChange={e => setNewItem({...newItem, name: e.target.value})} 
+                        className="w-full bg-black border border-gray-700 p-3 pr-12 text-white outline-none focus:border-white" 
+                     />
+                     <button
+                        type="button"
+                        onClick={generateDetails}
+                        disabled={isGenerating || !newItem.name.trim()}
+                        className="absolute right-2 top-2 p-1.5 text-gray-400 hover:text-white disabled:opacity-30 transition-colors"
+                        title="Auto-fill details with AI"
+                     >
+                        {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wand2 className="w-5 h-5" />}
+                     </button>
+                   </div>
+                   
                    <input required type="number" step="0.01" placeholder="Price" value={newItem.price} onChange={e => setNewItem({...newItem, price: e.target.value})} className="bg-black border border-gray-700 p-3 text-white outline-none focus:border-white" />
+                   
                    <select value={newItem.category} onChange={e => setNewItem({...newItem, category: e.target.value as ProductCategory})} className="bg-black border border-gray-700 p-3 text-white outline-none focus:border-white">
                       {Object.values(ProductCategory).map(c => <option key={c} value={c}>{c}</option>)}
                    </select>
+                   
                    <input type="number" placeholder="Prep Time (mins)" value={newItem.preparationTime} onChange={e => setNewItem({...newItem, preparationTime: e.target.value})} className="bg-black border border-gray-700 p-3 text-white outline-none focus:border-white" />
+                   
+                   <input type="number" placeholder="Calories (e.g. 350)" value={newItem.calories} onChange={e => setNewItem({...newItem, calories: e.target.value})} className="bg-black border border-gray-700 p-3 text-white outline-none focus:border-white" />
+                   
                    <input placeholder="Image URL" value={newItem.imageUrl} onChange={e => setNewItem({...newItem, imageUrl: e.target.value})} className="bg-black border border-gray-700 p-3 text-white outline-none focus:border-white md:col-span-2" />
+                   
                    <textarea placeholder="Description" value={newItem.description} onChange={e => setNewItem({...newItem, description: e.target.value})} className="bg-black border border-gray-700 p-3 text-white outline-none focus:border-white md:col-span-2 h-24" />
                 </div>
                 <button type="submit" className="w-full bg-white text-black py-3 font-bold uppercase tracking-widest hover:bg-gray-200">Save Item</button>
@@ -255,13 +320,25 @@ export const AdminDashboard: React.FC = () => {
             <div className="grid grid-cols-1 gap-4">
               {menuItems.map(item => (
                 <div key={item.id} className={`flex flex-col md:flex-row items-center gap-6 p-4 bg-black border ${item.isAvailable ? 'border-gray-800' : 'border-red-900/50 bg-red-900/10'}`}>
-                  <div className="w-16 h-16 bg-gray-900 flex-shrink-0">
+                  <div className="w-16 h-16 bg-gray-900 flex-shrink-0 relative group">
                     <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                    {item.calories && (
+                       <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-[10px] text-white text-center py-0.5">
+                         {item.calories} cal
+                       </div>
+                    )}
                   </div>
                   
                   <div className="flex-grow text-center md:text-left">
                     <h3 className="text-white font-bold">{item.name}</h3>
-                    <span className="text-xs text-gray-500 uppercase tracking-wider">{item.category}</span>
+                    <div className="flex items-center justify-center md:justify-start gap-2 mt-1">
+                       <span className="text-xs text-gray-500 uppercase tracking-wider">{item.category}</span>
+                       {item.calories && (
+                         <span className="flex items-center text-xs text-orange-500">
+                           <Flame className="w-3 h-3 mr-0.5" /> {item.calories}
+                         </span>
+                       )}
+                    </div>
                   </div>
 
                   {/* Price Editor */}

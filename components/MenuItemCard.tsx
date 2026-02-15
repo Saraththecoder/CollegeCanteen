@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MenuItem } from '../types';
 import { formatPrice } from '../utils/formatters';
-import { Plus, Clock } from 'lucide-react';
+import { Plus, Clock, Flame } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 
 interface Props {
@@ -45,9 +45,17 @@ export const MenuItemCard: React.FC<Props> = ({ item }) => {
         <p className="text-sm text-gray-400 leading-relaxed mb-6 flex-grow">{item.description}</p>
         
         <div className="flex items-center justify-between pt-4 border-t border-gray-800 mt-auto">
-          <div className="flex items-center text-xs text-gray-500 font-mono uppercase tracking-wide">
-            <Clock className="w-3 h-3 mr-2" />
-            {item.preparationTime} MIN
+          <div className="flex gap-4">
+            <div className="flex items-center text-xs text-gray-500 font-mono uppercase tracking-wide">
+                <Clock className="w-3 h-3 mr-2" />
+                {item.preparationTime} MIN
+            </div>
+            {item.calories && (
+                <div className="flex items-center text-xs text-orange-500 font-mono uppercase tracking-wide">
+                    <Flame className="w-3 h-3 mr-1" />
+                    {item.calories}
+                </div>
+            )}
           </div>
           
           <button 
