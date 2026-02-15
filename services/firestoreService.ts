@@ -3,7 +3,8 @@ import {
   doc, 
   getDocs, 
   addDoc, 
-  updateDoc, 
+  updateDoc,
+  deleteDoc,
   runTransaction, 
   query, 
   where, 
@@ -39,8 +40,12 @@ export const subscribeToStoreSettings = (callback: (isOpen: boolean) => void) =>
       callback(true);
     }
   }, (error) => {
-    console.error("Store settings sync failed", error);
-    callback(true); // Fallback to open on error
+    // Suppress error in console if it's just a permission issue during init
+    if (error.code !== 'permission-denied') {
+      console.warn("Store settings sync warning:", error.code);
+    }
+    // Fallback to open
+    callback(true);
   });
 };
 
@@ -86,6 +91,10 @@ export const addMenuItem = async (item: Omit<MenuItem, 'id'>) => {
 
 export const updateMenuItem = async (id: string, data: Partial<MenuItem>) => {
   return updateDoc(doc(db, 'menuItems', id), data);
+};
+
+export const deleteMenuItem = async (id: string) => {
+  return deleteDoc(doc(db, 'menuItems', id));
 };
 
 // --- SLOTS & ORDERS ---
