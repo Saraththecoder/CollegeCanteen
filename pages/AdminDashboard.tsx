@@ -13,7 +13,7 @@ import { Order, OrderStatus, MenuItem, ProductCategory } from '../types';
 import { formatTime, formatPrice } from '../utils/formatters';
 import { Navigate } from '../contexts/AuthContext';
 import { ROUTES } from '../constants';
-import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2, Wand2, Flame, Dumbbell, Scale, Sparkles } from 'lucide-react';
+import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2, Flame, Dumbbell, Scale, Sparkles } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 
 export const AdminDashboard: React.FC = () => {
