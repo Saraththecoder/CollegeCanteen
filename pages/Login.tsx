@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, Navigate } from '../contexts/AuthContext';
+import { Navigate } from '../contexts/AuthContext';
 import { ROUTES } from '../constants';
 import { AlertTriangle } from 'lucide-react';
 import { checkRateLimit, resetRateLimit, validatePassword, validateEmail } from '../utils/security';
@@ -10,7 +10,7 @@ type Tab = 'login' | 'signup';
 
 export const Login: React.FC = () => {
   const { user, signInWithGoogle, loginWithEmail, signupWithEmail, loading, error: authError } = useAuth();
-  // We rely on the reactive redirect below, but useNavigate is available if needed.
+  // We rely on the reactive redirect below.
   const [activeTab, setActiveTab] = useState<Tab>('login');
   
   const [email, setEmail] = useState('');
