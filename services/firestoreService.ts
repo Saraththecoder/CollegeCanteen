@@ -3,7 +3,7 @@ import {
   doc, 
   getDocs, 
   addDoc, 
-  updateDoc,
+  updateDoc, 
   deleteDoc,
   runTransaction, 
   query, 
@@ -18,12 +18,12 @@ import { MAX_ORDERS_PER_SLOT } from '../constants';
 
 // Mock data for fallback when Firestore permissions are missing
 export const MOCK_MENU_ITEMS: MenuItem[] = [
-  { id: 'mock1', name: 'Avocado Toast (Demo)', description: 'Sourdough, smashed avocado, chili flakes. Setup Firestore to see real data.', price: 12, category: ProductCategory.Breakfast, preparationTime: 10, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1588137372308-15f75323ca8d?auto=format&fit=crop&w=800&q=80', calories: 320 },
-  { id: 'mock2', name: 'Truffle Burger (Demo)', description: 'Angus beef, truffle mayo, brioche bun.', price: 18, category: ProductCategory.Lunch, preparationTime: 20, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80', calories: 850 },
-  { id: 'mock3', name: 'Quinoa Salad (Demo)', description: 'Kale, quinoa, cherry tomatoes, lemon vinaigrette.', price: 14, category: ProductCategory.Lunch, preparationTime: 10, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80', calories: 420 },
+  { id: 'mock1', name: 'Avocado Toast (Demo)', description: 'Sourdough, smashed avocado, chili flakes. Setup Firestore to see real data.', price: 12, category: ProductCategory.Breakfast, preparationTime: 10, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1588137372308-15f75323ca8d?auto=format&fit=crop&w=800&q=80', calories: 320, fitnessGoal: 'weight_loss' },
+  { id: 'mock2', name: 'Truffle Burger (Demo)', description: 'Angus beef, truffle mayo, brioche bun.', price: 18, category: ProductCategory.Lunch, preparationTime: 20, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80', calories: 850, fitnessGoal: 'muscle_gain' },
+  { id: 'mock3', name: 'Quinoa Salad (Demo)', description: 'Kale, quinoa, cherry tomatoes, lemon vinaigrette.', price: 14, category: ProductCategory.Lunch, preparationTime: 10, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80', calories: 420, fitnessGoal: 'weight_loss' },
   { id: 'mock4', name: 'Espresso (Demo)', description: 'Double shot single origin.', price: 3.5, category: ProductCategory.Beverages, preparationTime: 5, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80', calories: 5 },
   { id: 'mock5', name: 'Matcha Latte (Demo)', description: 'Ceremonial grade matcha, oat milk.', price: 5.5, category: ProductCategory.Beverages, preparationTime: 5, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1515825838458-f2a94b20105a?auto=format&fit=crop&w=800&q=80', calories: 120 },
-  { id: 'mock6', name: 'Acai Bowl (Demo)', description: 'Organic acai, granola, fresh berries.', price: 15, category: ProductCategory.Breakfast, preparationTime: 12, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1590301157890-4810ed352733?auto=format&fit=crop&w=800&q=80', calories: 450 },
+  { id: 'mock6', name: 'Acai Bowl (Demo)', description: 'Organic acai, granola, fresh berries.', price: 15, category: ProductCategory.Breakfast, preparationTime: 12, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1590301157890-4810ed352733?auto=format&fit=crop&w=800&q=80', calories: 450, fitnessGoal: 'weight_loss' },
 ];
 
 // --- SETTINGS ---
@@ -238,12 +238,12 @@ export const updateOrderStatus = async (orderId: string, status: OrderStatus) =>
 
 export const seedMenu = async () => {
   const items = [
-    { name: 'Avocado Toast', description: 'Sourdough, smashed avocado, chili flakes', price: 12, category: ProductCategory.Breakfast, preparationTime: 10, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1588137372308-15f75323ca8d?auto=format&fit=crop&w=800&q=80', calories: 320 },
-    { name: 'Truffle Burger', description: 'Angus beef, truffle mayo, brioche bun', price: 18, category: ProductCategory.Lunch, preparationTime: 20, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80', calories: 850 },
-    { name: 'Quinoa Salad', description: 'Kale, quinoa, cherry tomatoes, lemon vinaigrette', price: 14, category: ProductCategory.Lunch, preparationTime: 10, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80', calories: 420 },
+    { name: 'Avocado Toast', description: 'Sourdough, smashed avocado, chili flakes', price: 12, category: ProductCategory.Breakfast, preparationTime: 10, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1588137372308-15f75323ca8d?auto=format&fit=crop&w=800&q=80', calories: 320, fitnessGoal: 'weight_loss' },
+    { name: 'Truffle Burger', description: 'Angus beef, truffle mayo, brioche bun', price: 18, category: ProductCategory.Lunch, preparationTime: 20, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80', calories: 850, fitnessGoal: 'muscle_gain' },
+    { name: 'Quinoa Salad', description: 'Kale, quinoa, cherry tomatoes, lemon vinaigrette', price: 14, category: ProductCategory.Lunch, preparationTime: 10, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80', calories: 420, fitnessGoal: 'weight_loss' },
     { name: 'Espresso', description: 'Double shot single origin', price: 3.5, category: ProductCategory.Beverages, preparationTime: 5, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80', calories: 5 },
     { name: 'Matcha Latte', description: 'Ceremonial grade matcha, oat milk', price: 5.5, category: ProductCategory.Beverages, preparationTime: 5, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1515825838458-f2a94b20105a?auto=format&fit=crop&w=800&q=80', calories: 120 },
-    { name: 'Acai Bowl', description: 'Organic acai, granola, fresh berries', price: 15, category: ProductCategory.Breakfast, preparationTime: 12, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1590301157890-4810ed352733?auto=format&fit=crop&w=800&q=80', calories: 450 },
+    { name: 'Acai Bowl', description: 'Organic acai, granola, fresh berries', price: 15, category: ProductCategory.Breakfast, preparationTime: 12, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1590301157890-4810ed352733?auto=format&fit=crop&w=800&q=80', calories: 450, fitnessGoal: 'weight_loss' },
   ];
   
   try {

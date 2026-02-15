@@ -30,6 +30,7 @@ export interface MenuItem {
   isAvailable: boolean;
   preparationTime: number; // minutes
   calories?: number;
+  fitnessGoal?: 'muscle_gain' | 'weight_loss';
 }
 
 export interface CartItem extends MenuItem {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MenuItem } from '../types';
 import { formatPrice } from '../utils/formatters';
-import { Plus, Clock, Flame } from 'lucide-react';
+import { Plus, Clock, Flame, Dumbbell, Scale } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 
 interface Props {
@@ -32,6 +32,18 @@ export const MenuItemCard: React.FC<Props> = ({ item }) => {
         {!item.isAvailable && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-[1px]">
             <span className="bg-white text-black text-xs font-bold px-4 py-2 uppercase tracking-widest border border-white">Sold Out</span>
+          </div>
+        )}
+        
+        {/* Fitness Goal Badge */}
+        {item.fitnessGoal === 'muscle_gain' && (
+          <div className="absolute top-2 left-2 bg-blue-600/90 text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider flex items-center backdrop-blur-sm">
+             <Dumbbell className="w-3 h-3 mr-1" /> Muscle Gain
+          </div>
+        )}
+        {item.fitnessGoal === 'weight_loss' && (
+          <div className="absolute top-2 left-2 bg-green-600/90 text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider flex items-center backdrop-blur-sm">
+             <Scale className="w-3 h-3 mr-1" /> Weight Loss
           </div>
         )}
       </div>
