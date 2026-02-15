@@ -116,6 +116,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Session Timeout Logic (Security)
+  useEffect(() => {
+    if (!user) return;
+
+    const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+    let timeoutId: any;
+
+    const resetTimeout = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        signOut(auth);
+        console.log("Session expired due to inactivity");
+      }, SESSION_TIMEOUT);
+    };
+
+    const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    activityEvents.forEach(event => window.addEventListener(event, resetTimeout));
+
+    resetTimeout();
+
+    return () => {
+      clearTimeout(timeoutId);
+      activityEvents.forEach(event => window.removeEventListener(event, resetTimeout));
+    };
+  }, [user]);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -170,6 +196,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError("This email is already registered. Please login.");
     } else if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
       setError("Account not found or password incorrect. Please Sign Up if you are new.");
+    } else if (err.code === 'auth/too-many-requests') {
+      setError("Access to this account has been temporarily disabled due to many failed login attempts. You can immediately restore it by resetting your password or trying again later.");
     } else {
       setError(err.message || "Authentication failed.");
     }

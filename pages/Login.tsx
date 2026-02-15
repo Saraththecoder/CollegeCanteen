@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Navigate } from '../contexts/AuthContext';
 import { ROUTES, ADMIN_EMAIL } from '../constants';
 import { AlertTriangle, Info } from 'lucide-react';
+import { checkRateLimit, resetRateLimit, validatePassword, validateEmail } from '../utils/security';
 
 type Tab = 'login' | 'signup' | 'admin';
 
@@ -33,17 +34,50 @@ export const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError('');
+
+    // --- Validation & Security Checks ---
+
+    // 1. Rate Limiting for Login
+    if (activeTab === 'login' || activeTab === 'admin') {
+      const rateLimit = checkRateLimit(email);
+      if (!rateLimit.allowed) {
+        setLocalError(`Too many attempts. Please try again in ${rateLimit.waitTimeMinutes} minutes.`);
+        return;
+      }
+    }
+
+    // 2. Email Validation
+    if (!validateEmail(email)) {
+       setLocalError("Please enter a valid email address.");
+       return;
+    }
+
+    // 3. Password Validation (Strict check for signup)
+    if (activeTab === 'signup') {
+      const passValidation = validatePassword(password);
+      if (!passValidation.isValid) {
+        setLocalError(passValidation.message || "Invalid password.");
+        return;
+      }
+      if (!name.trim()) {
+        setLocalError("Name is required");
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
       if (activeTab === 'signup') {
-        if (!name) throw new Error("Name is required");
         await signupWithEmail(email, password, name);
       } else {
         await loginWithEmail(email, password);
+        // Successful login, reset rate limit
+        resetRateLimit(email);
       }
       navigate(ROUTES.HOME);
     } catch (err: any) {
+      // Don't reveal exactly why it failed to prevent enumeration (handled generically in AuthContext for user-not-found/wrong-password)
       setLocalError(err.message || "Action failed");
     } finally {
       setIsSubmitting(false);
@@ -149,6 +183,9 @@ export const Login: React.FC = () => {
                 required
                 minLength={6}
               />
+              {activeTab === 'signup' && (
+                <p className="text-[10px] text-gray-500">Min 8 chars, 1 uppercase, 1 lowercase, 1 number.</p>
+              )}
             </div>
 
             <button

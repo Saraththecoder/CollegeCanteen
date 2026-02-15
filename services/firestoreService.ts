@@ -25,6 +25,31 @@ export const MOCK_MENU_ITEMS: MenuItem[] = [
   { id: 'mock6', name: 'Acai Bowl (Demo)', description: 'Organic acai, granola, fresh berries.', price: 15, category: ProductCategory.Breakfast, preparationTime: 12, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1590301157890-4810ed352733?auto=format&fit=crop&w=800&q=80' },
 ];
 
+// --- SETTINGS ---
+
+export const subscribeToStoreSettings = (callback: (isOpen: boolean) => void) => {
+  const docRef = doc(db, 'settings', 'general');
+  return onSnapshot(docRef, (doc) => {
+    if (doc.exists()) {
+      const data = doc.data();
+      // Default to true if the field is missing
+      callback(data.isStoreOpen !== undefined ? data.isStoreOpen : true);
+    } else {
+      // Document doesn't exist yet, assume open
+      callback(true);
+    }
+  }, (error) => {
+    console.error("Store settings sync failed", error);
+    callback(true); // Fallback to open on error
+  });
+};
+
+export const updateStoreStatus = async (isOpen: boolean) => {
+  const docRef = doc(db, 'settings', 'general');
+  // Use setDoc with merge to ensure the document exists
+  return setDoc(docRef, { isStoreOpen: isOpen }, { merge: true });
+};
+
 // --- MENU ---
 export const getMenuItems = async (): Promise<MenuItem[]> => {
   try {
@@ -99,6 +124,11 @@ export const createOrder = async (
     quantity: quantities[item.id]
   }));
 
+  // Client-side integrity checks before transaction
+  if (totalAmount <= 0) throw new Error("Order amount must be positive");
+  if (items.length === 0) throw new Error("Order must contain items");
+  if (slotDate < new Date(Date.now() - 5 * 60 * 1000)) throw new Error("Cannot book past time slots"); // allow 5 min clock skew
+
   try {
     const orderId = await runTransaction(db, async (transaction) => {
       const slotRef = doc(db, 'timeSlots', slotId);
@@ -137,7 +167,7 @@ export const createOrder = async (
         customerMobile,
         items: orderItems,
         totalAmount,
-        status: OrderStatus.PENDING, 
+        status: OrderStatus.PENDING, // Security: Must start as PENDING or CONFIRMED as per rules
         scheduledTime: Timestamp.fromDate(slotDate),
         slotId,
         transactionId,

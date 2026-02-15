@@ -7,6 +7,7 @@ import { generateTimeSlots, formatTime, formatPrice } from '../utils/formatters'
 import { ROUTES } from '../constants';
 import { ArrowLeft, QrCode, AlertCircle } from 'lucide-react';
 import { UPIPayment } from '../components/UPIPayment';
+import { sanitizeInput } from '../utils/security';
 
 export const Checkout: React.FC = () => {
   const { items, quantities, totalPrice, clearCart } = useCart();
@@ -66,6 +67,11 @@ export const Checkout: React.FC = () => {
   const handlePaymentSuccess = async (transactionId: string) => {
     if (!selectedSlot) return;
 
+    // Sanitize inputs before sending to DB
+    const safeName = sanitizeInput(customerName);
+    const safeMobile = sanitizeInput(customerMobile);
+    const safeTxId = sanitizeInput(transactionId);
+
     try {
       const slotId = selectedSlot.toISOString();
       await createOrder(
@@ -75,9 +81,9 @@ export const Checkout: React.FC = () => {
         quantities,
         slotId,
         selectedSlot,
-        transactionId,
-        customerName,
-        customerMobile
+        safeTxId,
+        safeName,
+        safeMobile
       );
       // Order created successfully
       clearCart();

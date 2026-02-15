@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useStore } from '../contexts/StoreContext';
 import { subscribeToAllOrders, updateOrderStatus } from '../services/firestoreService';
 import { Order, OrderStatus } from '../types';
 import { formatTime, formatPrice } from '../utils/formatters';
 import { Navigate } from '../contexts/AuthContext';
 import { ROUTES } from '../constants';
-import { Coffee, Copy, Check, Phone } from 'lucide-react';
+import { Coffee, Copy, Check, Phone, Power, Loader2 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const { user, isAdmin } = useAuth();
+  const { isStoreOpen, setStoreOpen } = useStore();
   const [orders, setOrders] = useState<Order[]>([]);
   
   const [activeOrderTab, setActiveOrderTab] = useState<'active' | 'completed'>('active');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isTogglingStore, setIsTogglingStore] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -38,6 +41,17 @@ export const AdminDashboard: React.FC = () => {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const handleToggleStore = async () => {
+    setIsTogglingStore(true);
+    try {
+      await setStoreOpen(!isStoreOpen);
+    } catch (error) {
+      console.error("Failed to toggle store", error);
+    } finally {
+      setIsTogglingStore(false);
+    }
+  };
+
   const activeOrders = orders.filter(o => [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY].includes(o.status));
   const completedOrders = orders.filter(o => [OrderStatus.COMPLETED, OrderStatus.CANCELLED].includes(o.status));
   const displayOrders = activeOrderTab === 'active' ? activeOrders : completedOrders;
@@ -48,6 +62,20 @@ export const AdminDashboard: React.FC = () => {
         <div>
            <h1 className="text-4xl font-serif font-bold text-white animate-fade-in">Command Center</h1>
         </div>
+        
+        {/* Store Controls */}
+        <button 
+          onClick={handleToggleStore}
+          disabled={isTogglingStore}
+          className={`flex items-center gap-3 px-6 py-3 text-sm font-bold uppercase tracking-widest border transition-all duration-300 ${
+            isStoreOpen 
+              ? 'bg-white text-black border-white hover:bg-gray-200' 
+              : 'bg-red-900 text-white border-red-900 hover:bg-red-800'
+          }`}
+        >
+          {isTogglingStore ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
+          Store is {isStoreOpen ? 'Online' : 'Offline'}
+        </button>
       </div>
 
       <div className="space-y-8 animate-fade-in">

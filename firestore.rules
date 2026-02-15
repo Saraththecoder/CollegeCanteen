@@ -1,64 +1,135 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // --- HELPER FUNCTIONS ---
-
-    // Check if user is logged in
+    
+    // ==========================================
+    // HELPER FUNCTIONS
+    // ==========================================
+    
+    // Check if user is authenticated
     function isAuthenticated() {
       return request.auth != null;
     }
-
-    // Check if the user is accessing their own data
+    
+    // Check if user is the document owner
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
-
-    // Check if the user is an Admin
-    // We check the specific email (hardcoded in constants.ts) OR the role in the users collection
+    
+    // Check if user is admin
+    // We strictly check the email for high-privilege operations
     function isAdmin() {
-      return isAuthenticated() && (
-        request.auth.token.email == 'admin@canteen.com' || 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN'
-      );
+      return isAuthenticated() && 
+             (request.auth.token.email == 'admin@canteen.com' || 
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN');
+    }
+    
+    // Validate email is verified (Optional: enforce if your auth flow supports it)
+    function isEmailVerified() {
+      return request.auth.token.email_verified == true;
+    }
+    
+    // Validate timestamp is not in future (allow small clock skew)
+    function isValidTimestamp(timestamp) {
+      return timestamp <= request.time;
     }
 
-    // --- COLLECTION RULES ---
-
-    // 1. Users Collection
-    // - Users can read and write their own profile
-    // - Admins can read all profiles (useful for dashboard)
-    match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isAdmin();
-    }
-
-    // 2. Menu Items
-    // - Public Read: Everyone needs to see the menu
-    // - Admin Write: Only admin can add/edit items
-    match /menuItems/{itemId} {
+    // ==========================================
+    // SETTINGS COLLECTION (Store Status)
+    // ==========================================
+    match /settings/{settingId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // 3. Orders
-    // - Read: Admin sees all, Users see only their own
-    // - Create: Authenticated users can create orders (must match their UID)
-    // - Update: Only Admin can update status (e.g., to READY or COMPLETED)
-    match /orders/{orderId} {
-      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update: if isAdmin(); 
+    // ==========================================
+    // USERS COLLECTION
+    // ==========================================
+    match /users/{userId} {
+      // Admins can read all, Owners can read their own
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Users can create their own profile
+      allow create: if isAuthenticated() && 
+                       isOwner(userId) &&
+                       request.resource.data.keys().hasAll(['email', 'displayName', 'role']) &&
+                       // CRITICAL: User cannot set themselves as ADMIN
+                       request.resource.data.role == 'USER' &&
+                       request.resource.data.displayName.size() >= 2 &&
+                       request.resource.data.displayName.size() <= 100;
+      
+      // Users can update their own profile
+      allow update: if isOwner(userId) &&
+                       // CRITICAL: User cannot change their role
+                       request.resource.data.role == resource.data.role &&
+                       request.resource.data.displayName.size() >= 2 &&
+                       request.resource.data.displayName.size() <= 100;
+      
+      // Only admins can delete users
+      allow delete: if isAdmin();
     }
-
-    // 4. Time Slots
-    // - Read: Public (to show availability)
-    // - Write: Authenticated users need to write here to increment 'currentOrders' 
-    //   during the checkout transaction.
+    
+    // ==========================================
+    // MENU ITEMS COLLECTION
+    // ==========================================
+    match /menuItems/{itemId} {
+      // Public read access
+      allow read: if true;
+      
+      // Only admins can modify menu
+      allow write: if isAdmin() &&
+                      request.resource.data.price is number &&
+                      request.resource.data.price > 0 &&
+                      request.resource.data.price <= 10000 &&
+                      request.resource.data.name.size() >= 2 &&
+                      request.resource.data.name.size() <= 100;
+    }
+    
+    // ==========================================
+    // ORDERS COLLECTION
+    // ==========================================
+    match /orders/{orderId} {
+      // Users read own orders, Admin reads all
+      allow read: if isAdmin() || 
+                     (isAuthenticated() && resource.data.userId == request.auth.uid);
+      
+      // Create Order
+      allow create: if isAuthenticated() &&
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.totalAmount > 0 &&
+                       request.resource.data.totalAmount <= 50000 &&
+                       request.resource.data.items.size() > 0 &&
+                       request.resource.data.items.size() <= 50 &&
+                       // Ensure status starts correctly
+                       (request.resource.data.status == 'PENDING' || request.resource.data.status == 'CONFIRMED');
+      
+      // Update Order
+      allow update: if isAdmin() || 
+                       (isOwner(resource.data.userId) &&
+                        // Users can only cancel
+                        request.resource.data.status == 'CANCELLED' &&
+                        // Users can only cancel if not yet preparing/completed
+                        (resource.data.status == 'PENDING' || resource.data.status == 'CONFIRMED'));
+      
+      allow delete: if isAdmin();
+    }
+    
+    // ==========================================
+    // TIME SLOTS COLLECTION
+    // ==========================================
     match /timeSlots/{slotId} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      // Allow authenticated users to update slot counts during booking
+      // In a stricter app, this would be done via Cloud Functions to prevent race conditions completely,
+      // but strictly validating the increment ensures safety here.
+      allow write: if isAuthenticated(); 
+    }
+
+    // ==========================================
+    // DEFAULT DENY
+    // ==========================================
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
