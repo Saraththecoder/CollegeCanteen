@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { UPI_VPA, UPI_PAYEE_NAME } from '../constants';
+import { UPI_VPA, UPI_PAYEE_NAME, APP_NAME } from '../constants';
 import { formatPrice } from '../utils/formatters';
-import { Loader2, Send, Smartphone } from 'lucide-react';
+import { Loader2, Send, Smartphone, Copy, Check } from 'lucide-react';
 
 interface UPIPaymentProps {
   amount: number;
@@ -14,10 +14,15 @@ export const UPIPayment: React.FC<UPIPaymentProps> = ({ amount, onSuccess, onCan
   const [transactionId, setTransactionId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  // Generate a unique transaction reference for this session
+  // This helps banking apps identify the transaction and often bypasses generic security blocks
+  const transactionRef = useMemo(() => `T${Date.now()}`, []);
 
   // Construct UPI URL
-  // format: upi://pay?pa=<vpa>&pn=<name>&am=<amount>&cu=<currency>
-  const upiUrl = `upi://pay?pa=${UPI_VPA}&pn=${encodeURIComponent(UPI_PAYEE_NAME)}&am=${amount.toFixed(2)}&cu=INR`;
+  // format: upi://pay?pa=<vpa>&pn=<name>&am=<amount>&cu=<currency>&tn=<note>&tr=<ref>
+  const upiUrl = `upi://pay?pa=${UPI_VPA}&pn=${encodeURIComponent(UPI_PAYEE_NAME)}&am=${amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(`Order at ${APP_NAME}`)}&tr=${transactionRef}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +41,12 @@ export const UPIPayment: React.FC<UPIPaymentProps> = ({ amount, onSuccess, onCan
     }
   };
 
+  const copyVpa = () => {
+    navigator.clipboard.writeText(UPI_VPA);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className="animate-fade-in space-y-8">
       
@@ -43,28 +54,44 @@ export const UPIPayment: React.FC<UPIPaymentProps> = ({ amount, onSuccess, onCan
         <h3 className="font-serif font-bold text-xl mb-6 text-center">Scan or Click to Pay</h3>
         
         <div className="flex flex-col items-center justify-center space-y-6">
-          <div className="bg-white p-4 border-2 border-dashed border-gray-300">
+          <div className="bg-white p-4 border-2 border-dashed border-gray-300 relative">
              <QRCodeSVG value={upiUrl} size={200} />
           </div>
 
-          <a 
-            href={upiUrl}
-            className="md:hidden flex items-center justify-center w-full px-6 py-4 bg-black text-white font-bold uppercase tracking-widest text-sm hover:bg-gray-800 transition-colors rounded-none"
-          >
-            <Smartphone className="w-4 h-4 mr-2" /> Pay via UPI App
-          </a>
+          <div className="w-full space-y-3 md:hidden">
+            <a 
+              href={upiUrl}
+              className="flex items-center justify-center w-full px-6 py-4 bg-black text-white font-bold uppercase tracking-widest text-sm hover:bg-gray-800 transition-colors rounded-none"
+            >
+              <Smartphone className="w-4 h-4 mr-2" /> Pay via UPI App
+            </a>
+            <p className="text-[10px] text-center text-gray-500">
+              If the button doesn't work, copy the UPI ID below and pay manually.
+            </p>
+          </div>
           
-          <div className="text-center">
+          <div className="text-center w-full">
             <p className="text-3xl font-mono font-bold">{formatPrice(amount)}</p>
-            <p className="text-xs text-gray-500 uppercase tracking-widest mt-1">to {UPI_PAYEE_NAME}</p>
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <span className="text-xs text-gray-500 uppercase tracking-widest">To: {UPI_PAYEE_NAME}</span>
+            </div>
+            
+            <button 
+              onClick={copyVpa}
+              className="mt-2 flex items-center justify-center gap-2 text-xs font-mono bg-gray-100 px-3 py-1 rounded mx-auto hover:bg-gray-200 transition-colors"
+            >
+              {UPI_VPA}
+              {copied ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3 text-gray-500" />}
+            </button>
           </div>
         </div>
 
         <div className="mt-6 pt-6 border-t border-gray-200">
           <p className="text-xs text-center text-gray-500 leading-relaxed">
-             Open PhonePe, Google Pay, or Paytm.<br/>
-             Scan QR code and complete payment.<br/>
-             <strong className="text-black">Copy the UTR / Transaction ID.</strong>
+             1. Open PhonePe, Google Pay, or Paytm.<br/>
+             2. Scan QR code OR Click 'Pay via UPI App'.<br/>
+             3. Complete payment and <strong>copy the UTR / Transaction ID.</strong><br/>
+             4. Paste the ID below to confirm.
           </p>
         </div>
       </div>
