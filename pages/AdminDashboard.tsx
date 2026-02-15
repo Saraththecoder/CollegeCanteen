@@ -5,7 +5,7 @@ import { Order, OrderStatus } from '../types';
 import { formatTime, formatPrice } from '../utils/formatters';
 import { Navigate } from '../contexts/AuthContext';
 import { ROUTES } from '../constants';
-import { Coffee, Copy, Check } from 'lucide-react';
+import { Coffee, Copy, Check, Phone, User } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const { user, isAdmin } = useAuth();
@@ -82,8 +82,15 @@ export const AdminDashboard: React.FC = () => {
               
               <div className={`flex justify-between items-start mb-4 ${order.status === OrderStatus.READY ? 'mt-4' : ''}`}>
                 <div>
-                  <h3 className="font-bold text-xl text-white">{order.userEmail.split('@')[0]}</h3>
-                  <span className="font-mono text-xs text-gray-500">#{order.id.slice(0, 6)}</span>
+                  <h3 className="font-bold text-xl text-white">{order.customerName || order.userEmail.split('@')[0]}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="font-mono text-xs text-gray-500">#{order.id.slice(0, 6)}</span>
+                    {order.customerMobile && (
+                      <a href={`tel:${order.customerMobile}`} className="flex items-center text-xs text-gray-400 hover:text-white">
+                        <Phone className="w-3 h-3 mr-1" /> {order.customerMobile}
+                      </a>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-mono font-medium text-white">{formatTime(order.scheduledTime)}</p>

@@ -86,7 +86,9 @@ export const createOrder = async (
   quantities: Record<string, number>,
   slotId: string,
   slotDate: Date,
-  transactionId: string
+  transactionId: string,
+  customerName: string,
+  customerMobile: string
 ): Promise<string> => {
   
   const totalAmount = items.reduce((sum, item) => sum + (item.price * quantities[item.id]), 0);
@@ -131,6 +133,8 @@ export const createOrder = async (
       const newOrder: Omit<Order, 'id'> = {
         userId,
         userEmail,
+        customerName,
+        customerMobile,
         items: orderItems,
         totalAmount,
         status: OrderStatus.PENDING, 

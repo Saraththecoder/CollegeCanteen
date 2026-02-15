@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { UPI_VPA, UPI_PAYEE_NAME } from '../constants';
 import { formatPrice } from '../utils/formatters';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2, Send, Smartphone } from 'lucide-react';
 
 interface UPIPaymentProps {
   amount: number;
@@ -40,12 +40,19 @@ export const UPIPayment: React.FC<UPIPaymentProps> = ({ amount, onSuccess, onCan
     <div className="animate-fade-in space-y-8">
       
       <div className="bg-white text-black p-6 border border-gray-200">
-        <h3 className="font-serif font-bold text-xl mb-6 text-center">Scan to Pay</h3>
+        <h3 className="font-serif font-bold text-xl mb-6 text-center">Scan or Click to Pay</h3>
         
-        <div className="flex flex-col items-center justify-center space-y-4">
+        <div className="flex flex-col items-center justify-center space-y-6">
           <div className="bg-white p-4 border-2 border-dashed border-gray-300">
              <QRCodeSVG value={upiUrl} size={200} />
           </div>
+
+          <a 
+            href={upiUrl}
+            className="md:hidden flex items-center justify-center w-full px-6 py-4 bg-black text-white font-bold uppercase tracking-widest text-sm hover:bg-gray-800 transition-colors rounded-none"
+          >
+            <Smartphone className="w-4 h-4 mr-2" /> Pay via UPI App
+          </a>
           
           <div className="text-center">
             <p className="text-3xl font-mono font-bold">{formatPrice(amount)}</p>

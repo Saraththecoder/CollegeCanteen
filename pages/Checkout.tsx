@@ -16,6 +16,10 @@ export const Checkout: React.FC = () => {
   // Checkout State
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const [step, setStep] = useState<'slot' | 'payment'>('slot');
+
+  // Contact Details
+  const [customerName, setCustomerName] = useState(user?.displayName || '');
+  const [customerMobile, setCustomerMobile] = useState('');
   
   // Loading & Error State
   const [error, setError] = useState('');
@@ -26,7 +30,19 @@ export const Checkout: React.FC = () => {
   const slots = generateTimeSlots();
 
   const handleProceedToPayment = () => {
-    if (!selectedSlot) return;
+    if (!selectedSlot) {
+      setError('Please select a pickup time.');
+      return;
+    }
+    if (!customerName.trim() || !customerMobile.trim()) {
+      setError('Please provide your name and mobile number.');
+      return;
+    }
+    if (customerMobile.length < 10) {
+      setError('Please provide a valid mobile number.');
+      return;
+    }
+
     setError('');
     setStep('payment');
   };
@@ -43,7 +59,9 @@ export const Checkout: React.FC = () => {
         quantities,
         slotId,
         selectedSlot,
-        transactionId
+        transactionId,
+        customerName,
+        customerMobile
       );
       // Order created successfully
       clearCart();
@@ -73,23 +91,56 @@ export const Checkout: React.FC = () => {
         <div>
           {step === 'slot' ? (
             <>
-              <h2 className="text-3xl font-serif font-bold text-white mb-8">Select Pickup Time</h2>
-              <div className="space-y-6">
-                 <div className="grid grid-cols-3 gap-3">
-                   {slots.map((slot) => (
-                     <button
-                       key={slot.toISOString()}
-                       onClick={() => setSelectedSlot(slot)}
-                       className={`px-2 py-4 text-sm font-mono transition-all border ${
-                         selectedSlot === slot
-                           ? 'bg-white text-black border-white'
-                           : 'bg-black border-gray-800 text-gray-500 hover:border-white hover:text-white'
-                       }`}
-                     >
-                       {formatTime(slot)}
-                     </button>
-                   ))}
+              <h2 className="text-3xl font-serif font-bold text-white mb-8">Checkout Details</h2>
+              <div className="space-y-8">
+                
+                {/* Contact Section */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-gray-500 border-b border-gray-800 pb-2">Contact Info</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-mono text-gray-400 mb-1">NAME</label>
+                      <input 
+                        type="text" 
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        className="w-full bg-black border border-gray-700 p-3 text-white focus:border-white outline-none transition-colors"
+                        placeholder="Enter your name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-mono text-gray-400 mb-1">MOBILE NUMBER</label>
+                      <input 
+                        type="tel" 
+                        value={customerMobile}
+                        onChange={(e) => setCustomerMobile(e.target.value)}
+                        className="w-full bg-black border border-gray-700 p-3 text-white focus:border-white outline-none transition-colors"
+                        placeholder="e.g. 9876543210"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Slot Section */}
+                 <div className="space-y-4">
+                   <h3 className="text-sm font-bold uppercase tracking-widest text-gray-500 border-b border-gray-800 pb-2">Pickup Time</h3>
+                   <div className="grid grid-cols-3 gap-3">
+                     {slots.map((slot) => (
+                       <button
+                         key={slot.toISOString()}
+                         onClick={() => setSelectedSlot(slot)}
+                         className={`px-2 py-4 text-sm font-mono transition-all border ${
+                           selectedSlot === slot
+                             ? 'bg-white text-black border-white'
+                             : 'bg-black border-gray-800 text-gray-500 hover:border-white hover:text-white'
+                         }`}
+                       >
+                         {formatTime(slot)}
+                       </button>
+                     ))}
+                   </div>
                  </div>
+                 
                  {error && <p className="text-red-500 text-sm border border-red-900 bg-red-900/20 p-4">{error}</p>}
               </div>
             </>
@@ -97,7 +148,7 @@ export const Checkout: React.FC = () => {
             <>
               <div className="mb-8">
                  <h2 className="text-3xl font-serif font-bold text-white">Payment</h2>
-                 <p className="text-gray-400 mt-2">Scan QR code via UPI to complete order.</p>
+                 <p className="text-gray-400 mt-2">Scan QR code or pay via UPI App to complete order.</p>
               </div>
               <UPIPayment 
                 amount={totalPrice} 
@@ -129,7 +180,6 @@ export const Checkout: React.FC = () => {
             {step === 'slot' && (
               <button
                 onClick={handleProceedToPayment}
-                disabled={!selectedSlot}
                 className="w-full flex justify-center items-center px-6 py-5 bg-white text-black text-sm font-bold uppercase tracking-widest hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all group"
               >
                   <>

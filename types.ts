@@ -57,6 +57,8 @@ export interface Order {
   id: string;
   userId: string;
   userEmail: string;
+  customerName: string;
+  customerMobile: string;
   items: {
     menuItemId: string;
     name: string;
