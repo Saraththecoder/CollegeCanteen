@@ -3,11 +3,11 @@ export const ADMIN_EMAIL = "admin@canteen.com"; // In real app, use process.env.
 
 // UPI CONFIGURATION
 export const UPI_VPA = "8074244332@axl"; // REPLACE WITH YOUR MERCHANT UPI ID
-export const UPI_PAYEE_NAME = "Noir Canteen";
+export const UPI_PAYEE_NAME = "AITS Canteen";
 
 export const CURRENCY_SYMBOL = "₹"; // Changed to Rupee for UPI context
 
-export const APP_NAME = "NOIR CANTEEN";
+export const APP_NAME = "AITS CANTEEN";
 
 export const TIME_SLOT_INTERVAL_MINUTES = 15;
 export const MAX_ORDERS_PER_SLOT = 20;
