@@ -157,7 +157,7 @@ export const AdminDashboard: React.FC = () => {
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-latest',
+            model: 'gemini-3-flash-preview',
             contents: `Generate a short, enticing menu description (max 15 words) and estimate calories for a dish named "${newItem.name}".`,
             config: {
                 responseMimeType: "application/json",
