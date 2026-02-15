@@ -5,7 +5,7 @@ import { useNavigate, Navigate } from '../contexts/AuthContext';
 import { createOrder } from '../services/firestoreService';
 import { generateTimeSlots, formatTime, formatPrice } from '../utils/formatters';
 import { ROUTES } from '../constants';
-import { ArrowLeft, QrCode } from 'lucide-react';
+import { ArrowLeft, QrCode, AlertCircle } from 'lucide-react';
 import { UPIPayment } from '../components/UPIPayment';
 
 export const Checkout: React.FC = () => {
@@ -22,7 +22,8 @@ export const Checkout: React.FC = () => {
   const [customerMobile, setCustomerMobile] = useState('');
   
   // Loading & Error State
-  const [error, setError] = useState('');
+  const [globalError, setGlobalError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{name?: string; mobile?: string; slot?: string}>({});
 
   if (!user) return <Navigate to={ROUTES.LOGIN} replace />;
   if (items.length === 0) return <Navigate to={ROUTES.HOME} replace />;
@@ -30,20 +31,35 @@ export const Checkout: React.FC = () => {
   const slots = generateTimeSlots();
 
   const handleProceedToPayment = () => {
+    const errors: {name?: string; mobile?: string; slot?: string} = {};
+    let hasError = false;
+
+    if (!customerName.trim()) {
+      errors.name = "Name is required.";
+      hasError = true;
+    }
+
+    if (!customerMobile.trim()) {
+      errors.mobile = "Mobile number is required.";
+      hasError = true;
+    } else if (customerMobile.replace(/\D/g, '').length < 10) {
+      errors.mobile = "Please enter a valid mobile number (min 10 digits).";
+      hasError = true;
+    }
+
     if (!selectedSlot) {
-      setError('Please select a pickup time.');
-      return;
+      errors.slot = "Please select a pickup time.";
+      hasError = true;
     }
-    if (!customerName.trim() || !customerMobile.trim()) {
-      setError('Please provide your name and mobile number.');
-      return;
-    }
-    if (customerMobile.length < 10) {
-      setError('Please provide a valid mobile number.');
+
+    setFieldErrors(errors);
+
+    if (hasError) {
+      setGlobalError("Please correct the highlighted errors before proceeding.");
       return;
     }
 
-    setError('');
+    setGlobalError('');
     setStep('payment');
   };
 
@@ -69,10 +85,10 @@ export const Checkout: React.FC = () => {
     } catch (err: any) {
       console.error(err);
       if (err.message.includes("SLOT_FULL")) {
-        setError("The selected time slot just filled up. Please select another.");
+        setGlobalError("The selected time slot just filled up. Please select another.");
         setStep('slot');
       } else {
-        setError("Failed to create order. Please try again.");
+        setGlobalError("Failed to create order. Please try again.");
       }
     }
   };
@@ -99,36 +115,76 @@ export const Checkout: React.FC = () => {
                   <h3 className="text-sm font-bold uppercase tracking-widest text-gray-500 border-b border-gray-800 pb-2">Contact Info</h3>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-xs font-mono text-gray-400 mb-1">NAME</label>
+                      <label className="block text-xs font-mono text-gray-400 mb-1">
+                        NAME <span className="text-red-500">*</span>
+                      </label>
                       <input 
                         type="text" 
                         value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        className="w-full bg-black border border-gray-700 p-3 text-white focus:border-white outline-none transition-colors"
+                        onChange={(e) => {
+                          setCustomerName(e.target.value);
+                          if (fieldErrors.name) setFieldErrors(prev => ({ ...prev, name: undefined }));
+                        }}
+                        className={`w-full bg-black border p-3 text-white outline-none transition-colors ${
+                          fieldErrors.name 
+                            ? 'border-red-500 focus:border-red-500' 
+                            : 'border-gray-700 focus:border-white'
+                        }`}
                         placeholder="Enter your name"
                       />
+                      {fieldErrors.name && (
+                        <p className="text-red-500 text-xs mt-1 flex items-center">
+                          <AlertCircle className="w-3 h-3 mr-1" /> {fieldErrors.name}
+                        </p>
+                      )}
                     </div>
                     <div>
-                      <label className="block text-xs font-mono text-gray-400 mb-1">MOBILE NUMBER</label>
+                      <label className="block text-xs font-mono text-gray-400 mb-1">
+                        MOBILE NUMBER <span className="text-red-500">*</span>
+                      </label>
                       <input 
                         type="tel" 
                         value={customerMobile}
-                        onChange={(e) => setCustomerMobile(e.target.value)}
-                        className="w-full bg-black border border-gray-700 p-3 text-white focus:border-white outline-none transition-colors"
+                        onChange={(e) => {
+                          setCustomerMobile(e.target.value);
+                          if (fieldErrors.mobile) setFieldErrors(prev => ({ ...prev, mobile: undefined }));
+                        }}
+                        className={`w-full bg-black border p-3 text-white outline-none transition-colors ${
+                          fieldErrors.mobile 
+                            ? 'border-red-500 focus:border-red-500' 
+                            : 'border-gray-700 focus:border-white'
+                        }`}
                         placeholder="e.g. 9876543210"
                       />
+                      {fieldErrors.mobile && (
+                        <p className="text-red-500 text-xs mt-1 flex items-center">
+                          <AlertCircle className="w-3 h-3 mr-1" /> {fieldErrors.mobile}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 {/* Slot Section */}
                  <div className="space-y-4">
-                   <h3 className="text-sm font-bold uppercase tracking-widest text-gray-500 border-b border-gray-800 pb-2">Pickup Time</h3>
-                   <div className="grid grid-cols-3 gap-3">
+                   <div className="flex justify-between items-end border-b border-gray-800 pb-2">
+                     <h3 className="text-sm font-bold uppercase tracking-widest text-gray-500">
+                       Pickup Time <span className="text-red-500">*</span>
+                     </h3>
+                     {fieldErrors.slot && (
+                       <span className="text-red-500 text-xs flex items-center">
+                         <AlertCircle className="w-3 h-3 mr-1" /> {fieldErrors.slot}
+                       </span>
+                     )}
+                   </div>
+                   <div className={`grid grid-cols-3 gap-3 p-1 transition-colors rounded-sm ${fieldErrors.slot ? 'bg-red-900/10 border border-dashed border-red-500/50' : ''}`}>
                      {slots.map((slot) => (
                        <button
                          key={slot.toISOString()}
-                         onClick={() => setSelectedSlot(slot)}
+                         onClick={() => {
+                           setSelectedSlot(slot);
+                           if (fieldErrors.slot) setFieldErrors(prev => ({ ...prev, slot: undefined }));
+                         }}
                          className={`px-2 py-4 text-sm font-mono transition-all border ${
                            selectedSlot === slot
                              ? 'bg-white text-black border-white'
@@ -141,7 +197,12 @@ export const Checkout: React.FC = () => {
                    </div>
                  </div>
                  
-                 {error && <p className="text-red-500 text-sm border border-red-900 bg-red-900/20 p-4">{error}</p>}
+                 {globalError && (
+                   <div className="text-red-500 text-sm border border-red-900 bg-red-900/20 p-4 flex items-start">
+                     <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0" />
+                     {globalError}
+                   </div>
+                 )}
               </div>
             </>
           ) : (
