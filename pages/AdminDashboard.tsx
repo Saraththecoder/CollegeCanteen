@@ -13,7 +13,7 @@ import { Order, OrderStatus, MenuItem, ProductCategory } from '../types';
 import { formatTime, formatPrice } from '../utils/formatters';
 import { Navigate } from '../contexts/AuthContext';
 import { ROUTES } from '../constants';
-import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2, Wand2, Flame, Dumbbell, Scale } from 'lucide-react';
+import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2, Wand2, Flame, Dumbbell, Scale, Sparkles } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 
 export const AdminDashboard: React.FC = () => {
@@ -164,6 +164,10 @@ export const AdminDashboard: React.FC = () => {
 
   const generateDetails = async () => {
     if (!newItem.name.trim()) return;
+    
+    // Don't regenerate if we just generated for this name (simple check could be added here, 
+    // but for now we allow re-generation if user blurs again to correct/retry)
+    
     setIsGenerating(true);
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -171,7 +175,7 @@ export const AdminDashboard: React.FC = () => {
             model: 'gemini-3-flash-preview',
             contents: `For a dish named "${newItem.name}", generate:
             1. A short menu description (max 15 words).
-            2. Estimated calories.
+            2. Estimated calories (integer only).
             3. Fitness goal category: return "muscle_gain" if it is high protein/nutrient dense, or "weight_loss" if it is low calorie/light.`,
             config: {
                 responseMimeType: "application/json",
@@ -191,14 +195,13 @@ export const AdminDashboard: React.FC = () => {
             const data = JSON.parse(text);
             setNewItem(prev => ({
                 ...prev,
-                description: prev.description || data.description || '',
-                calories: prev.calories || (data.calories ? data.calories.toString() : ''),
-                fitnessGoal: prev.fitnessGoal || (data.fitnessGoal as 'muscle_gain' | 'weight_loss') || ''
+                description: data.description || prev.description,
+                calories: data.calories ? data.calories.toString() : prev.calories,
+                fitnessGoal: (data.fitnessGoal as 'muscle_gain' | 'weight_loss') || prev.fitnessGoal
             }));
         }
     } catch (e) {
         console.error("AI Generation failed", e);
-        // Fallback or silent fail
     } finally {
         setIsGenerating(false);
     }
@@ -293,46 +296,84 @@ export const AdminDashboard: React.FC = () => {
                   <button type="button" onClick={() => setIsAddingItem(false)}><X className="text-gray-400 hover:text-white" /></button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   <div className="md:col-span-2 relative">
+                   <div className="md:col-span-2 relative group">
+                     <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-1 block">Item Name</label>
                      <input 
                         required 
-                        placeholder="Item Name" 
+                        placeholder="e.g. Chicken Caesar Salad" 
                         value={newItem.name} 
-                        onChange={e => setNewItem({...newItem, name: e.target.value})} 
+                        onChange={e => setNewItem({...newItem, name: e.target.value})}
+                        onBlur={generateDetails}
                         className="w-full bg-black border border-gray-700 p-3 pr-12 text-white outline-none focus:border-white" 
                      />
-                     <button
-                        type="button"
-                        onClick={generateDetails}
-                        disabled={isGenerating || !newItem.name.trim()}
-                        className="absolute right-2 top-2 p-1.5 text-gray-400 hover:text-white disabled:opacity-30 transition-colors"
-                        title="Auto-fill details with AI"
-                     >
-                        {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wand2 className="w-5 h-5" />}
-                     </button>
+                     <div className="absolute right-2 top-8 text-gray-400">
+                        {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity" />}
+                     </div>
                    </div>
                    
-                   <input required type="number" step="0.01" placeholder="Price" value={newItem.price} onChange={e => setNewItem({...newItem, price: e.target.value})} className="bg-black border border-gray-700 p-3 text-white outline-none focus:border-white" />
+                   <div>
+                     <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-1 block">Price</label>
+                     <input required type="number" step="0.01" placeholder="0.00" value={newItem.price} onChange={e => setNewItem({...newItem, price: e.target.value})} className="w-full bg-black border border-gray-700 p-3 text-white outline-none focus:border-white" />
+                   </div>
                    
-                   <select value={newItem.category} onChange={e => setNewItem({...newItem, category: e.target.value as ProductCategory})} className="bg-black border border-gray-700 p-3 text-white outline-none focus:border-white">
-                      {Object.values(ProductCategory).map(c => <option key={c} value={c}>{c}</option>)}
-                   </select>
+                   <div>
+                      <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-1 block">Category</label>
+                      <select value={newItem.category} onChange={e => setNewItem({...newItem, category: e.target.value as ProductCategory})} className="w-full bg-black border border-gray-700 p-3 text-white outline-none focus:border-white">
+                          {Object.values(ProductCategory).map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                   </div>
                    
-                   <input type="number" placeholder="Prep Time (mins)" value={newItem.preparationTime} onChange={e => setNewItem({...newItem, preparationTime: e.target.value})} className="bg-black border border-gray-700 p-3 text-white outline-none focus:border-white" />
+                   <div>
+                      <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-1 block">Prep Time (min)</label>
+                      <input type="number" placeholder="10" value={newItem.preparationTime} onChange={e => setNewItem({...newItem, preparationTime: e.target.value})} className="w-full bg-black border border-gray-700 p-3 text-white outline-none focus:border-white" />
+                   </div>
                    
-                   <div className="grid grid-cols-2 gap-4">
-                     <input type="number" placeholder="Calories" value={newItem.calories} onChange={e => setNewItem({...newItem, calories: e.target.value})} className="bg-black border border-gray-700 p-3 text-white outline-none focus:border-white" />
+                   <div className="grid grid-cols-2 gap-4 md:col-span-1">
+                     <div className="relative">
+                       <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-1 block flex items-center gap-1">
+                          Calories {isGenerating && <Loader2 className="w-3 h-3 animate-spin" />}
+                       </label>
+                       <input 
+                          type="number" 
+                          placeholder="Auto-calc" 
+                          value={newItem.calories} 
+                          onChange={e => setNewItem({...newItem, calories: e.target.value})} 
+                          className={`w-full bg-black border border-gray-700 p-3 text-white outline-none focus:border-white transition-colors ${isGenerating ? 'opacity-50' : ''}`}
+                       />
+                     </div>
                      
-                     <select value={newItem.fitnessGoal} onChange={e => setNewItem({...newItem, fitnessGoal: e.target.value as any})} className="bg-black border border-gray-700 p-3 text-white outline-none focus:border-white">
-                        <option value="">No Goal</option>
-                        <option value="muscle_gain">Muscle Gain</option>
-                        <option value="weight_loss">Weight Loss</option>
-                     </select>
+                     <div className="relative">
+                       <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-1 block flex items-center gap-1">
+                          Goal {isGenerating && <Loader2 className="w-3 h-3 animate-spin" />}
+                       </label>
+                       <select 
+                          value={newItem.fitnessGoal} 
+                          onChange={e => setNewItem({...newItem, fitnessGoal: e.target.value as any})} 
+                          className={`w-full bg-black border border-gray-700 p-3 text-white outline-none focus:border-white transition-colors ${isGenerating ? 'opacity-50' : ''}`}
+                       >
+                          <option value="">None</option>
+                          <option value="muscle_gain">Muscle Gain</option>
+                          <option value="weight_loss">Weight Loss</option>
+                       </select>
+                     </div>
                    </div>
                    
-                   <input placeholder="Image URL" value={newItem.imageUrl} onChange={e => setNewItem({...newItem, imageUrl: e.target.value})} className="bg-black border border-gray-700 p-3 text-white outline-none focus:border-white md:col-span-2" />
+                   <div className="md:col-span-2">
+                      <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-1 block">Image URL</label>
+                      <input placeholder="https://..." value={newItem.imageUrl} onChange={e => setNewItem({...newItem, imageUrl: e.target.value})} className="w-full bg-black border border-gray-700 p-3 text-white outline-none focus:border-white" />
+                   </div>
                    
-                   <textarea placeholder="Description" value={newItem.description} onChange={e => setNewItem({...newItem, description: e.target.value})} className="bg-black border border-gray-700 p-3 text-white outline-none focus:border-white md:col-span-2 h-24" />
+                   <div className="md:col-span-2">
+                      <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-1 block flex items-center gap-1">
+                         Description {isGenerating && <Loader2 className="w-3 h-3 animate-spin" />}
+                      </label>
+                      <textarea 
+                        placeholder="Auto-generated description..." 
+                        value={newItem.description} 
+                        onChange={e => setNewItem({...newItem, description: e.target.value})} 
+                        className={`w-full bg-black border border-gray-700 p-3 text-white outline-none focus:border-white h-24 transition-colors ${isGenerating ? 'opacity-50' : ''}`} 
+                      />
+                   </div>
                 </div>
                 <button type="submit" className="w-full bg-white text-black py-3 font-bold uppercase tracking-widest hover:bg-gray-200">Save Item</button>
              </form>
