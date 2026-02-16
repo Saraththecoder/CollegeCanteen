@@ -69,6 +69,12 @@ export const Home: React.FC = () => {
       {/* Header & Controls */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-white pb-8">
         <div className="max-w-xl">
+          {user && (
+            <p className="text-sm font-medium text-gray-400 mb-2 animate-fade-in flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+              Welcome back, <span className="text-white font-bold font-serif italic">{user.displayName || 'Guest'}</span>
+            </p>
+          )}
           <h1 className="text-5xl font-serif font-bold text-white mb-4 leading-tight">Menu</h1>
           <p className="text-gray-400 font-light text-lg">Curated selection of seasonal dishes focused on simplicity and quality ingredients.</p>
         </div>
