@@ -11,7 +11,7 @@ import {
 } from '../services/firestoreService';
 import { Order, OrderStatus, MenuItem, ProductCategory } from '../types';
 import { formatTime, formatPrice } from '../utils/formatters';
-import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2, Flame, Dumbbell, Scale, Sparkles, Leaf } from 'lucide-react';
+import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2, Flame, Dumbbell, Scale, Sparkles } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { WelcomeToast } from '../components/WelcomeToast';
 import { SuccessScreen } from '../components/SuccessScreen';
