@@ -11,9 +11,7 @@ import {
 } from '../services/firestoreService';
 import { Order, OrderStatus, MenuItem, ProductCategory } from '../types';
 import { formatTime, formatPrice } from '../utils/formatters';
-import { Navigate } from '../contexts/AuthContext';
-import { ROUTES } from '../constants';
-import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2, Flame, Dumbbell, Scale, Sparkles } from 'lucide-react';
+import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2, Flame, Dumbbell, Scale, Sparkles, Leaf } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { WelcomeToast } from '../components/WelcomeToast';
 import { SuccessScreen } from '../components/SuccessScreen';
@@ -53,6 +51,8 @@ export const AdminDashboard: React.FC = () => {
     calories: string;
     isAvailable: boolean;
     fitnessGoal: 'muscle_gain' | 'weight_loss' | '';
+    isVegetarian: boolean;
+    isSpicy: boolean;
   }>({
     name: '',
     description: '',
@@ -62,7 +62,9 @@ export const AdminDashboard: React.FC = () => {
     preparationTime: '10',
     calories: '',
     isAvailable: true,
-    fitnessGoal: ''
+    fitnessGoal: '',
+    isVegetarian: true,
+    isSpicy: false
   });
 
   useEffect(() => {
@@ -91,8 +93,6 @@ export const AdminDashboard: React.FC = () => {
       setIsInventoryLoading(false);
     }
   };
-
-  if (!user || !isAdmin) return <Navigate to={ROUTES.HOME} replace />;
 
   // --- ORDER HANDLERS ---
   const handleStatusUpdate = async (orderId: string, newStatus: OrderStatus) => {
@@ -176,7 +176,8 @@ export const AdminDashboard: React.FC = () => {
             contents: `For a dish named "${newItem.name}", generate:
             1. A short menu description (max 15 words).
             2. Estimated calories (integer only).
-            3. Fitness goal category: return "muscle_gain" if it is high protein/nutrient dense, or "weight_loss" if it is low calorie/light.`,
+            3. Fitness goal category: return "muscle_gain" if it is high protein/nutrient dense, or "weight_loss" if it is low calorie/light.
+            4. Is it typically vegetarian? (boolean)`,
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
@@ -184,7 +185,8 @@ export const AdminDashboard: React.FC = () => {
                     properties: {
                         description: { type: Type.STRING },
                         calories: { type: Type.INTEGER },
-                        fitnessGoal: { type: Type.STRING, enum: ["muscle_gain", "weight_loss"] }
+                        fitnessGoal: { type: Type.STRING, enum: ["muscle_gain", "weight_loss"] },
+                        isVegetarian: { type: Type.BOOLEAN }
                     }
                 }
             }
@@ -197,7 +199,8 @@ export const AdminDashboard: React.FC = () => {
                 ...prev,
                 description: data.description || prev.description,
                 calories: data.calories ? data.calories.toString() : prev.calories,
-                fitnessGoal: (data.fitnessGoal as 'muscle_gain' | 'weight_loss') || prev.fitnessGoal
+                fitnessGoal: (data.fitnessGoal as 'muscle_gain' | 'weight_loss') || prev.fitnessGoal,
+                isVegetarian: data.isVegetarian !== undefined ? data.isVegetarian : prev.isVegetarian
             }));
         }
     } catch (e) {
@@ -219,7 +222,9 @@ export const AdminDashboard: React.FC = () => {
         preparationTime: parseInt(newItem.preparationTime),
         isAvailable: newItem.isAvailable,
         calories: newItem.calories ? parseInt(newItem.calories) : undefined,
-        fitnessGoal: newItem.fitnessGoal || undefined
+        fitnessGoal: newItem.fitnessGoal || undefined,
+        isVegetarian: newItem.isVegetarian,
+        isSpicy: newItem.isSpicy
       });
       setShowSuccess(true);
       // Don't close immediately, wait for animation
@@ -233,7 +238,8 @@ export const AdminDashboard: React.FC = () => {
     setIsAddingItem(false);
     setNewItem({
       name: '', description: '', price: '', category: ProductCategory.Snacks, 
-      imageUrl: '', preparationTime: '10', calories: '', isAvailable: true, fitnessGoal: ''
+      imageUrl: '', preparationTime: '10', calories: '', isAvailable: true, fitnessGoal: '',
+      isVegetarian: true, isSpicy: false
     });
     loadInventory();
   };
@@ -343,6 +349,7 @@ export const AdminDashboard: React.FC = () => {
                       <input type="number" placeholder="10" value={newItem.preparationTime} onChange={e => setNewItem({...newItem, preparationTime: e.target.value})} className="w-full bg-white dark:bg-black border border-gray-300 dark:border-gray-700 p-4 text-black dark:text-white outline-none focus:border-black dark:focus:border-white transition-colors" />
                    </div>
                    
+                   {/* Attributes Section */}
                    <div className="grid grid-cols-2 gap-4 md:col-span-1">
                      <div className="relative">
                        <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 block font-bold flex items-center gap-1">
@@ -371,6 +378,32 @@ export const AdminDashboard: React.FC = () => {
                           <option value="weight_loss">Weight Loss</option>
                        </select>
                      </div>
+                   </div>
+
+                   {/* New Dietary Flags */}
+                   <div className="grid grid-cols-2 gap-4 md:col-span-1">
+                      <div className="flex items-center h-full pt-6">
+                        <label className="flex items-center cursor-pointer gap-2">
+                           <input 
+                              type="checkbox" 
+                              checked={newItem.isVegetarian}
+                              onChange={e => setNewItem({...newItem, isVegetarian: e.target.checked})}
+                              className="w-5 h-5 accent-green-600"
+                           />
+                           <span className="text-sm font-bold uppercase tracking-wide text-gray-600 dark:text-gray-400">Vegetarian</span>
+                        </label>
+                      </div>
+                      <div className="flex items-center h-full pt-6">
+                        <label className="flex items-center cursor-pointer gap-2">
+                           <input 
+                              type="checkbox" 
+                              checked={newItem.isSpicy}
+                              onChange={e => setNewItem({...newItem, isSpicy: e.target.checked})}
+                              className="w-5 h-5 accent-orange-600"
+                           />
+                           <span className="text-sm font-bold uppercase tracking-wide text-gray-600 dark:text-gray-400">Spicy</span>
+                        </label>
+                      </div>
                    </div>
                    
                    <div className="md:col-span-2">
@@ -414,6 +447,14 @@ export const AdminDashboard: React.FC = () => {
                     <h3 className="text-xl font-serif font-bold text-black dark:text-white">{item.name}</h3>
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-2">
                        <span className="text-xs text-gray-500 uppercase tracking-wider px-2 py-1 bg-gray-100 dark:bg-gray-900">{item.category}</span>
+                       
+                       {/* Tags */}
+                       {item.isVegetarian !== undefined && (
+                         <span className={`flex items-center text-xs font-bold uppercase px-2 py-0.5 border ${item.isVegetarian ? 'text-green-600 border-green-200 bg-green-50' : 'text-red-600 border-red-200 bg-red-50'}`}>
+                           {item.isVegetarian ? 'Veg' : 'Non-Veg'}
+                         </span>
+                       )}
+                       
                        {item.calories && (
                          <span className="flex items-center text-xs text-orange-600 dark:text-orange-500">
                            <Flame className="w-3 h-3 mr-0.5" /> {item.calories}

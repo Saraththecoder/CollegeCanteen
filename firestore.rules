@@ -6,25 +6,27 @@ service cloud.firestore {
     // HELPER FUNCTIONS
     // ==========================================
     
-    // Check if user is authenticated
     function isAuthenticated() {
       return request.auth != null;
     }
     
-    // Check if user is the document owner
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
-    // Check if user is admin
-    // We strictly check the email for high-privilege operations
-    // Added exists() check to prevent runtime errors if user profile is missing
+    // Strict admin check using custom claims or specific document lookup
     function isAdmin() {
       return isAuthenticated() && 
              (request.auth.token.email == 'admin@canteen.com' || 
               (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
                get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN'));
     }
+
+    // Type Validation Helpers
+    function isString(data) { return data is string; }
+    function isNumber(data) { return data is number || data is int || data is float; }
+    function isBoolean(data) { return data is bool; }
+    function isNotEmpty(data) { return isString(data) && data.size() > 0; }
     
     // ==========================================
     // SETTINGS COLLECTION (Store Status)
@@ -38,22 +40,20 @@ service cloud.firestore {
     // USERS COLLECTION
     // ==========================================
     match /users/{userId} {
-      // Admins can read all, Owners can read their own
       allow read: if isOwner(userId) || isAdmin();
       
-      // Users can create their own profile
       allow create: if isAuthenticated() && 
                        isOwner(userId) &&
                        request.resource.data.keys().hasAll(['email', 'displayName', 'role']) &&
-                       // CRITICAL: User cannot set themselves as ADMIN
+                       isString(request.resource.data.email) &&
+                       isString(request.resource.data.displayName) &&
+                       // CRITICAL: User cannot set themselves as ADMIN on creation
                        request.resource.data.role == 'USER';
       
-      // Users can update their own profile
       allow update: if isOwner(userId) &&
                        // CRITICAL: User cannot change their role
                        request.resource.data.role == resource.data.role;
       
-      // Only admins can delete users
       allow delete: if isAdmin();
     }
     
@@ -61,29 +61,33 @@ service cloud.firestore {
     // MENU ITEMS COLLECTION
     // ==========================================
     match /menuItems/{itemId} {
-      // Public read access
       allow read: if true;
       
-      // Only admins can modify menu
-      allow write: if isAdmin();
+      // Strict schema validation for menu items
+      allow write: if isAdmin() && 
+                      isNotEmpty(request.resource.data.name) &&
+                      isNumber(request.resource.data.price) &&
+                      request.resource.data.price >= 0;
     }
     
     // ==========================================
     // ORDERS COLLECTION
     // ==========================================
     match /orders/{orderId} {
-      // Users read own orders, Admin reads all
       allow read: if isAdmin() || 
                      (isAuthenticated() && resource.data.userId == request.auth.uid);
       
-      // Create Order
       allow create: if isAuthenticated() &&
                        request.resource.data.userId == request.auth.uid &&
+                       isNumber(request.resource.data.totalAmount) &&
                        request.resource.data.totalAmount > 0 &&
                        request.resource.data.items.size() > 0 &&
-                       (request.resource.data.status == 'PENDING' || request.resource.data.status == 'CONFIRMED');
+                       // Validate Status
+                       (request.resource.data.status == 'PENDING' || request.resource.data.status == 'CONFIRMED') &&
+                       // Validate Contact Info
+                       isNotEmpty(request.resource.data.customerName) &&
+                       isNotEmpty(request.resource.data.customerMobile);
       
-      // Update Order
       allow update: if isAdmin() || 
                        (isOwner(resource.data.userId) &&
                         // Users can only cancel
@@ -99,6 +103,8 @@ service cloud.firestore {
     // ==========================================
     match /timeSlots/{slotId} {
       allow read: if true;
+      // We allow authenticated writes here because the transaction creates/updates slots
+      // Ideally this would be done via Cloud Functions to be stricter, but for this architecture:
       allow write: if isAuthenticated(); 
     }
 

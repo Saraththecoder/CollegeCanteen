@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter as Router, Routes, Route } from './contexts/AuthContext';
+import { HashRouter as Router, Routes, Route, ProtectedRoute } from './contexts/AuthContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { StoreProvider } from './contexts/StoreContext';
@@ -29,9 +29,30 @@ const App: React.FC = () => {
                 <Routes>
                   <Route path={ROUTES.HOME} element={<Home />} />
                   <Route path={ROUTES.LOGIN} element={<Login />} />
-                  <Route path={ROUTES.ORDERS} element={<Orders />} />
-                  <Route path={ROUTES.ADMIN} element={<AdminDashboard />} />
-                  <Route path={ROUTES.CHECKOUT} element={<Checkout />} />
+                  <Route 
+                    path={ROUTES.ORDERS} 
+                    element={
+                      <ProtectedRoute>
+                        <Orders />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path={ROUTES.ADMIN} 
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminDashboard />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path={ROUTES.CHECKOUT} 
+                    element={
+                      <ProtectedRoute>
+                        <Checkout />
+                      </ProtectedRoute>
+                    } 
+                  />
                 </Routes>
               </Layout>
             </Router>

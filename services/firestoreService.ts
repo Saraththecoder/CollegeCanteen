@@ -10,7 +10,10 @@ import {
   where, 
   Timestamp,
   onSnapshot,
-  setDoc
+  setDoc,
+  getDoc,
+  arrayUnion,
+  arrayRemove
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { MenuItem, Order, OrderStatus, TimeSlot, ProductCategory } from '../types';
@@ -18,12 +21,12 @@ import { MAX_ORDERS_PER_SLOT } from '../constants';
 
 // Mock data for fallback when Firestore permissions are missing
 export const MOCK_MENU_ITEMS: MenuItem[] = [
-  { id: 'mock1', name: 'Avocado Toast (Demo)', description: 'Sourdough, smashed avocado, chili flakes. Setup Firestore to see real data.', price: 12, category: ProductCategory.Breakfast, preparationTime: 10, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1588137372308-15f75323ca8d?auto=format&fit=crop&w=800&q=80', calories: 320, fitnessGoal: 'weight_loss' },
-  { id: 'mock2', name: 'Truffle Burger (Demo)', description: 'Angus beef, truffle mayo, brioche bun.', price: 18, category: ProductCategory.Lunch, preparationTime: 20, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80', calories: 850, fitnessGoal: 'muscle_gain' },
-  { id: 'mock3', name: 'Quinoa Salad (Demo)', description: 'Kale, quinoa, cherry tomatoes, lemon vinaigrette.', price: 14, category: ProductCategory.Lunch, preparationTime: 10, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80', calories: 420, fitnessGoal: 'weight_loss' },
-  { id: 'mock4', name: 'Espresso (Demo)', description: 'Double shot single origin.', price: 3.5, category: ProductCategory.Beverages, preparationTime: 5, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80', calories: 5 },
-  { id: 'mock5', name: 'Matcha Latte (Demo)', description: 'Ceremonial grade matcha, oat milk.', price: 5.5, category: ProductCategory.Beverages, preparationTime: 5, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1515825838458-f2a94b20105a?auto=format&fit=crop&w=800&q=80', calories: 120 },
-  { id: 'mock6', name: 'Acai Bowl (Demo)', description: 'Organic acai, granola, fresh berries.', price: 15, category: ProductCategory.Breakfast, preparationTime: 12, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1590301157890-4810ed352733?auto=format&fit=crop&w=800&q=80', calories: 450, fitnessGoal: 'weight_loss' },
+  { id: 'mock1', name: 'Avocado Toast', description: 'Sourdough, smashed avocado, chili flakes.', price: 12, category: ProductCategory.Breakfast, preparationTime: 10, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1588137372308-15f75323ca8d?auto=format&fit=crop&w=800&q=80', calories: 320, fitnessGoal: 'weight_loss', isVegetarian: true, isSpicy: true },
+  { id: 'mock2', name: 'Truffle Burger', description: 'Angus beef, truffle mayo, brioche bun.', price: 18, category: ProductCategory.Lunch, preparationTime: 20, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80', calories: 850, fitnessGoal: 'muscle_gain', isVegetarian: false },
+  { id: 'mock3', name: 'Quinoa Salad', description: 'Kale, quinoa, cherry tomatoes, lemon vinaigrette.', price: 14, category: ProductCategory.Lunch, preparationTime: 10, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80', calories: 420, fitnessGoal: 'weight_loss', isVegetarian: true },
+  { id: 'mock4', name: 'Espresso', description: 'Double shot single origin.', price: 3.5, category: ProductCategory.Beverages, preparationTime: 5, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80', calories: 5, isVegetarian: true },
+  { id: 'mock5', name: 'Matcha Latte', description: 'Ceremonial grade matcha, oat milk.', price: 5.5, category: ProductCategory.Beverages, preparationTime: 5, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1515825838458-f2a94b20105a?auto=format&fit=crop&w=800&q=80', calories: 120, isVegetarian: true },
+  { id: 'mock6', name: 'Acai Bowl', description: 'Organic acai, granola, fresh berries.', price: 15, category: ProductCategory.Breakfast, preparationTime: 12, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1590301157890-4810ed352733?auto=format&fit=crop&w=800&q=80', calories: 450, fitnessGoal: 'weight_loss', isVegetarian: true },
 ];
 
 // --- SETTINGS ---
@@ -33,25 +36,20 @@ export const subscribeToStoreSettings = (callback: (isOpen: boolean) => void) =>
   return onSnapshot(docRef, (doc) => {
     if (doc.exists()) {
       const data = doc.data();
-      // Default to true if the field is missing
       callback(data.isStoreOpen !== undefined ? data.isStoreOpen : true);
     } else {
-      // Document doesn't exist yet, assume open
       callback(true);
     }
   }, (error) => {
-    // Suppress error in console if it's just a permission issue during init
     if (error.code !== 'permission-denied') {
       console.warn("Store settings sync warning:", error.code);
     }
-    // Fallback to open
     callback(true);
   });
 };
 
 export const updateStoreStatus = async (isOpen: boolean) => {
   const docRef = doc(db, 'settings', 'general');
-  // Use setDoc with merge to ensure the document exists
   return setDoc(docRef, { isStoreOpen: isOpen }, { merge: true });
 };
 
@@ -61,15 +59,13 @@ export const getMenuItems = async (): Promise<MenuItem[]> => {
     const q = query(collection(db, 'menuItems'), where('isAvailable', '==', true));
     const querySnapshot = await getDocs(q);
     
-    // If we have data, return it
     if (!querySnapshot.empty) {
       return querySnapshot.docs.map(d => ({ id: d.id, ...d.data() } as MenuItem));
     }
     
     return [];
   } catch (error: any) {
-    console.warn("Firestore access failed (likely permissions), returning mock data.");
-    // Return mock data so the app looks functional during setup
+    console.warn("Firestore access failed, returning mock data.");
     return MOCK_MENU_ITEMS;
   }
 };
@@ -97,9 +93,35 @@ export const deleteMenuItem = async (id: string) => {
   return deleteDoc(doc(db, 'menuItems', id));
 };
 
+// --- FAVORITES ---
+export const getUserFavorites = async (userId: string): Promise<string[]> => {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (userDoc.exists()) {
+      return userDoc.data().favorites || [];
+    }
+    return [];
+  } catch (e) {
+    console.error("Error fetching favorites", e);
+    return [];
+  }
+};
+
+export const toggleFavorite = async (userId: string, itemId: string, isCurrentlyFavorite: boolean) => {
+  const userRef = doc(db, 'users', userId);
+  if (isCurrentlyFavorite) {
+    await updateDoc(userRef, {
+      favorites: arrayRemove(itemId)
+    });
+  } else {
+    await updateDoc(userRef, {
+      favorites: arrayUnion(itemId)
+    });
+  }
+};
+
 // --- SLOTS & ORDERS ---
 
-// Ensure a slot document exists
 export const ensureSlotExists = async (slotId: string, startTime: Date) => {
   try {
     const slotRef = doc(db, 'timeSlots', slotId);
@@ -133,10 +155,9 @@ export const createOrder = async (
     quantity: quantities[item.id]
   }));
 
-  // Client-side integrity checks before transaction
   if (totalAmount <= 0) throw new Error("Order amount must be positive");
   if (items.length === 0) throw new Error("Order must contain items");
-  if (slotDate < new Date(Date.now() - 5 * 60 * 1000)) throw new Error("Cannot book past time slots"); // allow 5 min clock skew
+  if (slotDate < new Date(Date.now() - 5 * 60 * 1000)) throw new Error("Cannot book past time slots");
 
   try {
     const orderId = await runTransaction(db, async (transaction) => {
@@ -158,7 +179,6 @@ export const createOrder = async (
         throw new Error("SLOT_FULL");
       }
 
-      // Create or Update Slot
       transaction.set(slotRef, {
         id: slotId,
         startTime: Timestamp.fromDate(slotDate),
@@ -167,7 +187,6 @@ export const createOrder = async (
         status: (currentOrders + 1 >= maxOrders) ? 'full' : 'available'
       }, { merge: true });
 
-      // Create Order
       const newOrderRef = doc(collection(db, 'orders'));
       const newOrder: Omit<Order, 'id'> = {
         userId,
@@ -176,7 +195,7 @@ export const createOrder = async (
         customerMobile,
         items: orderItems,
         totalAmount,
-        status: OrderStatus.PENDING, // Security: Must start as PENDING or CONFIRMED as per rules
+        status: OrderStatus.PENDING,
         scheduledTime: Timestamp.fromDate(slotDate),
         slotId,
         transactionId,
@@ -205,7 +224,7 @@ export const subscribeToUserOrders = (userId: string, callback: (orders: Order[]
     orders.sort((a, b) => {
        const tA = a.createdAt?.toMillis() || 0;
        const tB = b.createdAt?.toMillis() || 0;
-       return tB - tA; // Descending
+       return tB - tA;
     });
     callback(orders);
   }, (error) => {
@@ -223,7 +242,7 @@ export const subscribeToAllOrders = (callback: (orders: Order[]) => void) => {
     orders.sort((a, b) => {
        const tA = a.createdAt?.toMillis() || 0;
        const tB = b.createdAt?.toMillis() || 0;
-       return tB - tA; // Descending
+       return tB - tA;
     });
     callback(orders);
   }, (error) => {
@@ -237,15 +256,7 @@ export const updateOrderStatus = async (orderId: string, status: OrderStatus) =>
 };
 
 export const seedMenu = async () => {
-  const items = [
-    { name: 'Avocado Toast', description: 'Sourdough, smashed avocado, chili flakes', price: 12, category: ProductCategory.Breakfast, preparationTime: 10, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1588137372308-15f75323ca8d?auto=format&fit=crop&w=800&q=80', calories: 320, fitnessGoal: 'weight_loss' },
-    { name: 'Truffle Burger', description: 'Angus beef, truffle mayo, brioche bun', price: 18, category: ProductCategory.Lunch, preparationTime: 20, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80', calories: 850, fitnessGoal: 'muscle_gain' },
-    { name: 'Quinoa Salad', description: 'Kale, quinoa, cherry tomatoes, lemon vinaigrette', price: 14, category: ProductCategory.Lunch, preparationTime: 10, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80', calories: 420, fitnessGoal: 'weight_loss' },
-    { name: 'Espresso', description: 'Double shot single origin', price: 3.5, category: ProductCategory.Beverages, preparationTime: 5, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80', calories: 5 },
-    { name: 'Matcha Latte', description: 'Ceremonial grade matcha, oat milk', price: 5.5, category: ProductCategory.Beverages, preparationTime: 5, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1515825838458-f2a94b20105a?auto=format&fit=crop&w=800&q=80', calories: 120 },
-    { name: 'Acai Bowl', description: 'Organic acai, granola, fresh berries', price: 15, category: ProductCategory.Breakfast, preparationTime: 12, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1590301157890-4810ed352733?auto=format&fit=crop&w=800&q=80', calories: 450, fitnessGoal: 'weight_loss' },
-  ];
-  
+  const items = MOCK_MENU_ITEMS;
   try {
     for (const item of items) {
       await addDoc(collection(db, 'menuItems'), item);

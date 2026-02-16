@@ -8,9 +8,10 @@ import {
   updateProfile
 } from 'firebase/auth';
 import { auth, googleProvider, db } from '../firebase';
-import { ADMIN_EMAIL } from '../constants';
+import { ADMIN_EMAIL, ROUTES } from '../constants';
 import { UserProfile, UserRole } from '../types';
 import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { Loader2 } from 'lucide-react';
 
 // --- Simple Router Implementation (Replaces react-router-dom) ---
 const RouterContext = createContext<{ path: string; navigate: (path: string, options?: { replace?: boolean }) => void }>({ path: '/', navigate: () => {} });
@@ -253,4 +254,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {!loading && children}
     </AuthContext.Provider>
   );
+};
+
+// --- Protected Route Component ---
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  requireAdmin?: boolean;
+}
+
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin = false }) => {
+  const { user, loading, isAdmin } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        navigate(ROUTES.LOGIN);
+      } else if (requireAdmin && !isAdmin) {
+        navigate(ROUTES.HOME);
+      }
+    }
+  }, [user, loading, isAdmin, requireAdmin, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-black dark:text-white" />
+      </div>
+    );
+  }
+
+  if (!user) return null;
+  if (requireAdmin && !isAdmin) return null;
+
+  return <>{children}</>;
 };

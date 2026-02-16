@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, Navigate } from '../contexts/AuthContext';
+import { useNavigate } from '../contexts/AuthContext';
 import { createOrder } from '../services/firestoreService';
 import { generateTimeSlots, formatTime, formatPrice } from '../utils/formatters';
 import { ROUTES } from '../constants';
@@ -30,9 +30,14 @@ export const Checkout: React.FC = () => {
   // Animation State
   const [showSuccess, setShowSuccess] = useState(false);
 
-  if (!user) return <Navigate to={ROUTES.LOGIN} replace />;
+  // Note: user check is now handled by ProtectedRoute in App.tsx
+  
   // Don't redirect home if we are showing the success animation, even if cart is empty (because clearCart runs before animation completes)
-  if (items.length === 0 && !showSuccess) return <Navigate to={ROUTES.HOME} replace />;
+  if (items.length === 0 && !showSuccess) {
+    // We can use a direct redirect here for empty cart as it's a logic check, not auth check
+    navigate(ROUTES.HOME);
+    return null;
+  }
 
   const slots = generateTimeSlots();
 
@@ -70,7 +75,7 @@ export const Checkout: React.FC = () => {
   };
 
   const handlePaymentSuccess = async (transactionId: string) => {
-    if (!selectedSlot) return;
+    if (!selectedSlot || !user) return;
 
     // Sanitize inputs before sending to DB
     const safeName = sanitizeInput(customerName);

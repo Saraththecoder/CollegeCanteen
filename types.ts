@@ -11,6 +11,7 @@ export interface UserProfile {
   displayName: string;
   role: UserRole;
   createdAt: Timestamp;
+  favorites?: string[]; // Array of MenuItem IDs
 }
 
 export enum ProductCategory {
@@ -31,6 +32,8 @@ export interface MenuItem {
   preparationTime: number; // minutes
   calories?: number;
   fitnessGoal?: 'muscle_gain' | 'weight_loss';
+  isVegetarian?: boolean;
+  isSpicy?: boolean;
 }
 
 export interface CartItem extends MenuItem {
