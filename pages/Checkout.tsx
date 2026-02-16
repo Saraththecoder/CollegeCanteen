@@ -100,28 +100,32 @@ export const Checkout: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-6xl mx-auto px-4">
       {step === 'slot' && (
-        <button onClick={() => navigate(-1)} className="flex items-center text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-white mb-8">
+        <button onClick={() => navigate(-1)} className="flex items-center text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-black dark:hover:text-white mb-8 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-2" /> Return to Menu
         </button>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-16 animate-fade-in">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24 animate-fade-in relative">
         
         {/* LEFT COLUMN: Main Interaction Area */}
-        <div>
+        <div className="lg:col-span-7 space-y-12">
           {step === 'slot' ? (
             <>
-              <h2 className="text-3xl font-serif font-bold text-white mb-8">Checkout Details</h2>
-              <div className="space-y-8">
+              <div>
+                <h2 className="text-3xl font-serif font-bold text-black dark:text-white mb-2">Checkout Details</h2>
+                <p className="text-gray-500 text-sm">Review your details and schedule a pickup.</p>
+              </div>
+              
+              <div className="space-y-10">
                 
                 {/* Contact Section */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-gray-500 border-b border-gray-800 pb-2">Contact Info</h3>
-                  <div className="space-y-4">
+                <div className="space-y-6">
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-gray-500 border-b border-gray-200 dark:border-gray-800 pb-2">Contact Info</h3>
+                  <div className="space-y-6">
                     <div>
-                      <label className="block text-xs font-mono text-gray-400 mb-1">
+                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">
                         NAME <span className="text-red-500">*</span>
                       </label>
                       <input 
@@ -131,21 +135,21 @@ export const Checkout: React.FC = () => {
                           setCustomerName(e.target.value);
                           if (fieldErrors.name) setFieldErrors(prev => ({ ...prev, name: undefined }));
                         }}
-                        className={`w-full bg-black border p-3 text-white outline-none transition-colors ${
+                        className={`w-full bg-gray-50 dark:bg-black border p-4 text-black dark:text-white outline-none transition-colors ${
                           fieldErrors.name 
                             ? 'border-red-500 focus:border-red-500' 
-                            : 'border-gray-700 focus:border-white'
+                            : 'border-gray-300 dark:border-gray-700 focus:border-black dark:focus:border-white'
                         }`}
                         placeholder="Enter your name"
                       />
                       {fieldErrors.name && (
-                        <p className="text-red-500 text-xs mt-1 flex items-center">
+                        <p className="text-red-500 text-xs mt-2 flex items-center font-medium">
                           <AlertCircle className="w-3 h-3 mr-1" /> {fieldErrors.name}
                         </p>
                       )}
                     </div>
                     <div>
-                      <label className="block text-xs font-mono text-gray-400 mb-1">
+                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">
                         MOBILE NUMBER <span className="text-red-500">*</span>
                       </label>
                       <input 
@@ -155,15 +159,15 @@ export const Checkout: React.FC = () => {
                           setCustomerMobile(e.target.value);
                           if (fieldErrors.mobile) setFieldErrors(prev => ({ ...prev, mobile: undefined }));
                         }}
-                        className={`w-full bg-black border p-3 text-white outline-none transition-colors ${
+                        className={`w-full bg-gray-50 dark:bg-black border p-4 text-black dark:text-white outline-none transition-colors ${
                           fieldErrors.mobile 
                             ? 'border-red-500 focus:border-red-500' 
-                            : 'border-gray-700 focus:border-white'
+                            : 'border-gray-300 dark:border-gray-700 focus:border-black dark:focus:border-white'
                         }`}
                         placeholder="e.g. 9876543210"
                       />
                       {fieldErrors.mobile && (
-                        <p className="text-red-500 text-xs mt-1 flex items-center">
+                        <p className="text-red-500 text-xs mt-2 flex items-center font-medium">
                           <AlertCircle className="w-3 h-3 mr-1" /> {fieldErrors.mobile}
                         </p>
                       )}
@@ -172,18 +176,18 @@ export const Checkout: React.FC = () => {
                 </div>
 
                 {/* Slot Section */}
-                 <div className="space-y-4">
-                   <div className="flex justify-between items-end border-b border-gray-800 pb-2">
+                 <div className="space-y-6">
+                   <div className="flex justify-between items-end border-b border-gray-200 dark:border-gray-800 pb-2">
                      <h3 className="text-sm font-bold uppercase tracking-widest text-gray-500">
                        Pickup Time <span className="text-red-500">*</span>
                      </h3>
                      {fieldErrors.slot && (
-                       <span className="text-red-500 text-xs flex items-center">
+                       <span className="text-red-500 text-xs flex items-center font-medium">
                          <AlertCircle className="w-3 h-3 mr-1" /> {fieldErrors.slot}
                        </span>
                      )}
                    </div>
-                   <div className={`grid grid-cols-3 gap-3 p-1 transition-colors rounded-sm ${fieldErrors.slot ? 'bg-red-900/10 border border-dashed border-red-500/50' : ''}`}>
+                   <div className={`grid grid-cols-3 sm:grid-cols-4 gap-3 p-1 transition-colors rounded-sm ${fieldErrors.slot ? 'bg-red-50 dark:bg-red-900/10 border border-dashed border-red-500/50' : ''}`}>
                      {slots.map((slot) => (
                        <button
                          key={slot.toISOString()}
@@ -193,8 +197,8 @@ export const Checkout: React.FC = () => {
                          }}
                          className={`px-2 py-4 text-sm font-mono transition-all border ${
                            selectedSlot === slot
-                             ? 'bg-white text-black border-white'
-                             : 'bg-black border-gray-800 text-gray-500 hover:border-white hover:text-white'
+                             ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-md transform scale-105'
+                             : 'bg-white dark:bg-black border-gray-200 dark:border-gray-800 text-gray-500 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white'
                          }`}
                        >
                          {formatTime(slot)}
@@ -204,7 +208,7 @@ export const Checkout: React.FC = () => {
                  </div>
                  
                  {globalError && (
-                   <div className="text-red-500 text-sm border border-red-900 bg-red-900/20 p-4 flex items-start">
+                   <div className="text-red-600 dark:text-red-400 text-sm border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 p-4 flex items-start">
                      <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0" />
                      {globalError}
                    </div>
@@ -214,8 +218,8 @@ export const Checkout: React.FC = () => {
           ) : (
             <>
               <div className="mb-8">
-                 <h2 className="text-3xl font-serif font-bold text-white">Payment</h2>
-                 <p className="text-gray-400 mt-2">Scan QR code or pay via UPI App to complete order.</p>
+                 <h2 className="text-3xl font-serif font-bold text-black dark:text-white">Payment</h2>
+                 <p className="text-gray-500 mt-2">Scan QR code or pay via UPI App to complete order.</p>
               </div>
               <UPIPayment 
                 amount={totalPrice} 
@@ -227,27 +231,30 @@ export const Checkout: React.FC = () => {
         </div>
 
         {/* RIGHT COLUMN: Order Summary */}
-        <div className="h-fit">
-          <div className="bg-black p-8 border border-white">
-            <h3 className="text-xl font-serif font-bold text-white mb-6 border-b border-white pb-4">Order Summary</h3>
+        <div className="lg:col-span-5 relative">
+          <div className="lg:sticky lg:top-24 bg-white dark:bg-black p-8 border border-gray-200 dark:border-white shadow-xl dark:shadow-none transition-colors duration-300">
+            <h3 className="text-xl font-serif font-bold text-black dark:text-white mb-6 border-b border-gray-200 dark:border-white pb-4">Order Summary</h3>
             <ul className="space-y-4 mb-8">
               {items.map(item => (
-                <li key={item.id} className="flex justify-between text-sm">
-                  <span className="text-white font-medium"><span className="text-gray-500 mr-2 font-mono">{quantities[item.id]}x</span> {item.name}</span>
-                  <span className="font-mono text-gray-400">{formatPrice(item.price * quantities[item.id])}</span>
+                <li key={item.id} className="flex justify-between text-sm items-start">
+                  <span className="text-black dark:text-white font-medium">
+                    <span className="text-gray-500 mr-2 font-mono text-xs border border-gray-200 dark:border-gray-800 px-1.5 py-0.5 rounded">{quantities[item.id]}x</span> 
+                    {item.name}
+                  </span>
+                  <span className="font-mono text-gray-500 dark:text-gray-400">{formatPrice(item.price * quantities[item.id])}</span>
                 </li>
               ))}
             </ul>
             
-            <div className="flex justify-between items-center border-t border-dashed border-gray-700 pt-6 mb-8">
-              <span className="font-bold text-white uppercase tracking-widest">Total</span>
-              <span className="font-bold font-mono text-2xl text-white">{formatPrice(totalPrice)}</span>
+            <div className="flex justify-between items-center border-t border-dashed border-gray-300 dark:border-gray-700 pt-6 mb-8">
+              <span className="font-bold text-black dark:text-white uppercase tracking-widest text-sm">Total Amount</span>
+              <span className="font-bold font-mono text-2xl text-black dark:text-white">{formatPrice(totalPrice)}</span>
             </div>
 
             {step === 'slot' && (
               <button
                 onClick={handleProceedToPayment}
-                className="w-full flex justify-center items-center px-6 py-5 bg-white text-black text-sm font-bold uppercase tracking-widest hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all group"
+                className="w-full flex justify-center items-center px-6 py-5 bg-black dark:bg-white text-white dark:text-black text-sm font-bold uppercase tracking-widest hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all group"
               >
                   <>
                     Proceed to Payment <QrCode className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -260,8 +267,8 @@ export const Checkout: React.FC = () => {
             )}
             
             {selectedSlot && (
-              <div className="mt-6 flex items-center justify-center text-xs text-gray-500 uppercase tracking-widest">
-                 Pickup at <span className="text-white font-bold ml-2">{formatTime(selectedSlot)}</span>
+              <div className="mt-6 flex items-center justify-center text-xs text-gray-500 uppercase tracking-widest bg-gray-100 dark:bg-zinc-900 py-3 rounded-sm">
+                 Pickup at <span className="text-black dark:text-white font-bold ml-2">{formatTime(selectedSlot)}</span>
               </div>
             )}
           </div>

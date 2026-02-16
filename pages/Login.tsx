@@ -98,27 +98,27 @@ export const Login: React.FC = () => {
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full bg-black">
+      <div className="max-w-md w-full bg-white dark:bg-black p-8 shadow-2xl border border-gray-100 dark:border-gray-800 transition-colors duration-300">
         
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-serif font-bold text-white mb-2">
+          <h1 className="text-4xl font-serif font-bold text-black dark:text-white mb-2">
             {activeTab === 'signup' ? 'Join Us' : 'Welcome Back'}
           </h1>
-          <p className="text-gray-400 font-light">
+          <p className="text-gray-500 font-light">
             {activeTab === 'signup' ? 'Create your account' : 'Access your account'}
           </p>
         </div>
 
-        <div className="flex border-b border-gray-800 mb-8">
+        <div className="flex border-b border-gray-200 dark:border-gray-800 mb-8">
           <button
             onClick={() => handleTabChange('login')}
-            className={`flex-1 pb-4 text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === 'login' ? 'text-white border-b-2 border-white' : 'text-gray-600 hover:text-gray-400'}`}
+            className={`flex-1 pb-4 text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === 'login' ? 'text-black dark:text-white border-b-2 border-black dark:border-white' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
           >
             Login
           </button>
           <button
             onClick={() => handleTabChange('signup')}
-            className={`flex-1 pb-4 text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === 'signup' ? 'text-white border-b-2 border-white' : 'text-gray-600 hover:text-gray-400'}`}
+            className={`flex-1 pb-4 text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === 'signup' ? 'text-black dark:text-white border-b-2 border-black dark:border-white' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
           >
             Register
           </button>
@@ -126,9 +126,9 @@ export const Login: React.FC = () => {
 
         <div>
           {displayError && (
-            <div className="mb-8 p-4 border border-white flex items-start text-left bg-gray-900">
-              <AlertTriangle className="w-5 h-5 text-white mr-3 flex-shrink-0" />
-              <p className="text-sm font-medium text-white">{displayError}</p>
+            <div className="mb-8 p-4 border border-red-200 dark:border-white flex items-start text-left bg-red-50 dark:bg-gray-900">
+              <AlertTriangle className="w-5 h-5 text-red-600 dark:text-white mr-3 flex-shrink-0" />
+              <p className="text-sm font-medium text-red-600 dark:text-white">{displayError}</p>
             </div>
           )}
 
@@ -140,7 +140,7 @@ export const Login: React.FC = () => {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 bg-black border border-gray-700 focus:border-white text-white outline-none transition-colors"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-black border border-gray-300 dark:border-gray-700 focus:border-black dark:focus:border-white text-black dark:text-white outline-none transition-colors"
                   required
                 />
               </div>
@@ -152,7 +152,7 @@ export const Login: React.FC = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-gray-700 focus:border-white text-white outline-none transition-colors disabled:bg-gray-900 disabled:text-gray-600"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-black border border-gray-300 dark:border-gray-700 focus:border-black dark:focus:border-white text-black dark:text-white outline-none transition-colors disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:text-gray-500"
                 required
               />
             </div>
@@ -163,7 +163,7 @@ export const Login: React.FC = () => {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-gray-700 focus:border-white text-white outline-none transition-colors"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-black border border-gray-300 dark:border-gray-700 focus:border-black dark:focus:border-white text-black dark:text-white outline-none transition-colors"
                 required
                 minLength={6}
               />
@@ -175,21 +175,21 @@ export const Login: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-white text-black py-4 font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors disabled:opacity-50 mt-4"
+              className="w-full bg-black dark:bg-white text-white dark:text-black py-4 font-bold uppercase tracking-widest hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50 mt-4"
             >
               {isSubmitting ? 'Processing...' : activeTab === 'signup' ? 'Create Account' : 'Enter'}
             </button>
           </form>
 
           <div className="relative my-10 text-center">
-            <span className="bg-black px-4 text-xs text-gray-400 uppercase tracking-widest">or</span>
-            <div className="absolute top-1/2 left-0 w-full border-t border-gray-800 -z-10"></div>
+            <span className="bg-white dark:bg-black px-4 text-xs text-gray-400 uppercase tracking-widest">or</span>
+            <div className="absolute top-1/2 left-0 w-full border-t border-gray-200 dark:border-gray-800 -z-10"></div>
           </div>
 
           <button
             type="button"
             onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center gap-3 border border-white py-4 text-sm font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all text-white"
+            className="w-full flex items-center justify-center gap-3 border border-gray-300 dark:border-white py-4 text-sm font-bold uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-white hover:text-black dark:hover:text-black transition-all text-black dark:text-white"
           >
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 bg-white rounded-full" />
             Continue with Google

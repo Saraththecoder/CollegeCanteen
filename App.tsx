@@ -3,6 +3,7 @@ import { HashRouter as Router, Routes, Route } from './contexts/AuthContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { StoreProvider } from './contexts/StoreContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 import { Login } from './pages/Login';
@@ -20,21 +21,23 @@ const App: React.FC = () => {
 
   return (
     <AuthProvider>
-      <StoreProvider>
-        <CartProvider>
-          <Router>
-            <Layout>
-              <Routes>
-                <Route path={ROUTES.HOME} element={<Home />} />
-                <Route path={ROUTES.LOGIN} element={<Login />} />
-                <Route path={ROUTES.ORDERS} element={<Orders />} />
-                <Route path={ROUTES.ADMIN} element={<AdminDashboard />} />
-                <Route path={ROUTES.CHECKOUT} element={<Checkout />} />
-              </Routes>
-            </Layout>
-          </Router>
-        </CartProvider>
-      </StoreProvider>
+      <ThemeProvider>
+        <StoreProvider>
+          <CartProvider>
+            <Router>
+              <Layout>
+                <Routes>
+                  <Route path={ROUTES.HOME} element={<Home />} />
+                  <Route path={ROUTES.LOGIN} element={<Login />} />
+                  <Route path={ROUTES.ORDERS} element={<Orders />} />
+                  <Route path={ROUTES.ADMIN} element={<AdminDashboard />} />
+                  <Route path={ROUTES.CHECKOUT} element={<Checkout />} />
+                </Routes>
+              </Layout>
+            </Router>
+          </CartProvider>
+        </StoreProvider>
+      </ThemeProvider>
     </AuthProvider>
   );
 };

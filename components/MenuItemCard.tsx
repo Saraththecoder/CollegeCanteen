@@ -21,8 +21,8 @@ export const MenuItemCard: React.FC<Props> = ({ item }) => {
   };
 
   return (
-    <div className={`group relative bg-black border border-white/20 hover:border-white transition-all duration-300 flex flex-col h-full ${!item.isAvailable ? 'opacity-50' : ''} animate-fade-in`}>
-      <div className="aspect-[4/3] w-full overflow-hidden bg-gray-900 relative border-b border-white/20">
+    <div className={`group relative bg-white dark:bg-black border border-gray-200 dark:border-white/20 hover:border-black dark:hover:border-white transition-all duration-300 flex flex-col h-full ${!item.isAvailable ? 'opacity-50' : ''} animate-fade-in`}>
+      <div className="aspect-[4/3] w-full overflow-hidden bg-gray-100 dark:bg-gray-900 relative border-b border-gray-100 dark:border-white/20">
         <img 
           src={item.imageUrl} 
           alt={item.name} 
@@ -30,8 +30,8 @@ export const MenuItemCard: React.FC<Props> = ({ item }) => {
           loading="lazy"
         />
         {!item.isAvailable && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-[1px]">
-            <span className="bg-white text-black text-xs font-bold px-4 py-2 uppercase tracking-widest border border-white">Sold Out</span>
+          <div className="absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-black/70 backdrop-blur-[1px]">
+            <span className="bg-black dark:bg-white text-white dark:text-black text-xs font-bold px-4 py-2 uppercase tracking-widest border border-black dark:border-white">Sold Out</span>
           </div>
         )}
         
@@ -50,13 +50,13 @@ export const MenuItemCard: React.FC<Props> = ({ item }) => {
 
       <div className="p-6 flex flex-col flex-grow">
         <div className="flex justify-between items-start mb-3">
-          <h3 className="text-xl font-serif font-bold text-white leading-tight pr-4">{item.name}</h3>
-          <span className="font-mono text-lg font-medium text-white">{formatPrice(item.price)}</span>
+          <h3 className="text-xl font-serif font-bold text-black dark:text-white leading-tight pr-4">{item.name}</h3>
+          <span className="font-mono text-lg font-medium text-black dark:text-white">{formatPrice(item.price)}</span>
         </div>
         
-        <p className="text-sm text-gray-400 leading-relaxed mb-6 flex-grow">{item.description}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-6 flex-grow">{item.description}</p>
         
-        <div className="flex items-center justify-between pt-4 border-t border-gray-800 mt-auto">
+        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto">
           <div className="flex gap-4">
             <div className="flex items-center text-xs text-gray-500 font-mono uppercase tracking-wide">
                 <Clock className="w-3 h-3 mr-2" />
@@ -73,7 +73,7 @@ export const MenuItemCard: React.FC<Props> = ({ item }) => {
           <button 
             onClick={handleAddToCart}
             disabled={!item.isAvailable}
-            className={`flex items-center justify-center w-10 h-10 border border-white bg-black text-white hover:bg-white hover:text-black transition-all duration-200 disabled:opacity-0 disabled:cursor-not-allowed ${isAnimating ? 'animate-pop bg-white text-black' : ''}`}
+            className={`flex items-center justify-center w-10 h-10 border border-black dark:border-white bg-white dark:bg-black text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all duration-200 disabled:opacity-0 disabled:cursor-not-allowed ${isAnimating ? 'animate-pop bg-black dark:bg-white text-white dark:text-black' : ''}`}
             aria-label={`Add ${item.name} to cart`}
           >
             <Plus className="w-4 h-4" />

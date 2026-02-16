@@ -59,7 +59,7 @@ export const Home: React.FC = () => {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 animate-pulse">
         {[1, 2, 3, 4, 5, 6].map(i => (
-          <div key={i} className="h-96 bg-gray-900 border border-gray-800"></div>
+          <div key={i} className="h-96 bg-gray-200 dark:bg-gray-900 border border-gray-300 dark:border-gray-800"></div>
         ))}
       </div>
     );
@@ -70,19 +70,19 @@ export const Home: React.FC = () => {
       {user && <WelcomeToast name={user.displayName || 'Guest'} />}
       
       {/* Header & Controls */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-white pb-8">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-black dark:border-white pb-8 transition-colors duration-300">
         <div className="max-w-xl">
-          <h1 className="text-5xl font-serif font-bold text-white mb-4 leading-tight">Menu</h1>
-          <p className="text-gray-400 font-light text-lg">Curated selection of seasonal dishes focused on simplicity and quality ingredients.</p>
+          <h1 className="text-5xl font-serif font-bold text-black dark:text-white mb-4 leading-tight transition-colors duration-300">Menu</h1>
+          <p className="text-gray-600 dark:text-gray-400 font-light text-lg">Curated selection of seasonal dishes focused on simplicity and quality ingredients.</p>
         </div>
         
         <div className="w-full md:w-auto">
-          <div className="flex items-center gap-3 border-b border-gray-700 pb-2 focus-within:border-white transition-colors w-full md:w-64">
-            <Search className="w-4 h-4 text-white" />
+          <div className="flex items-center gap-3 border-b border-gray-300 dark:border-gray-700 pb-2 focus-within:border-black dark:focus-within:border-white transition-colors w-full md:w-64">
+            <Search className="w-4 h-4 text-black dark:text-white" />
             <input 
               type="text" 
               placeholder="SEARCH DISHES" 
-              className="outline-none text-sm bg-transparent flex-grow placeholder:text-gray-600 font-medium tracking-wide text-white"
+              className="outline-none text-sm bg-transparent flex-grow placeholder:text-gray-500 font-medium tracking-wide text-black dark:text-white"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -98,8 +98,8 @@ export const Home: React.FC = () => {
             onClick={() => setActiveCategory(cat)}
             className={`px-6 py-2 text-sm font-bold uppercase tracking-widest transition-all border ${
               activeCategory === cat 
-                ? 'bg-white text-black border-white' 
-                : 'bg-black text-gray-500 border-gray-800 hover:border-white hover:text-white'
+                ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' 
+                : 'bg-white dark:bg-black text-gray-500 dark:text-gray-500 border-gray-200 dark:border-gray-800 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white'
             }`}
           >
             {cat}
@@ -115,12 +115,12 @@ export const Home: React.FC = () => {
           ))}
         </div>
       ) : (
-        <div className="text-center py-32 border border-dashed border-gray-800">
+        <div className="text-center py-32 border border-dashed border-gray-300 dark:border-gray-800">
             <>
-              <p className="text-white font-serif text-2xl italic">No matches found.</p>
+              <p className="text-black dark:text-white font-serif text-2xl italic">No matches found.</p>
               <button 
                 onClick={() => { setActiveCategory('all'); setSearchQuery(''); }}
-                className="mt-6 text-xs font-bold uppercase tracking-widest border-b border-white pb-1 hover:text-gray-400 hover:border-gray-400"
+                className="mt-6 text-xs font-bold uppercase tracking-widest border-b border-black dark:border-white pb-1 hover:text-gray-500 hover:border-gray-500 transition-colors"
               >
                 Clear all filters
               </button>
