@@ -135,7 +135,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         <div className="max-w-7xl mx-auto px-4 flex flex-col items-center">
           <span className="font-serif font-bold text-lg mb-4 text-white">{APP_NAME}</span>
           <div className="text-gray-500 text-sm font-mono">
-            EST. 2024 &bull; QUALITY FIRST
+            QUALITY COMES FIRST
           </div>
         </div>
       </footer>
