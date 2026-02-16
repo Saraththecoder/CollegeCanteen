@@ -13,22 +13,30 @@ export const SuccessScreen: React.FC<SuccessScreenProps> = ({ isVisible, message
   useEffect(() => {
     if (isVisible) {
       setShow(true);
-      // Wait for animation to finish then call onComplete
+      // Lock body scroll
+      document.body.style.overflow = 'hidden';
+      
       const timer = setTimeout(() => {
         onComplete();
       }, 2500);
-      return () => clearTimeout(timer);
+
+      return () => {
+        clearTimeout(timer);
+        // Restore body scroll
+        document.body.style.overflow = 'unset';
+      };
     } else {
       setShow(false);
+      document.body.style.overflow = 'unset';
     }
   }, [isVisible, onComplete]);
 
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-white dark:bg-black transition-colors duration-300">
-      <div className="relative w-24 h-24 mb-8">
-        {/* Animated Checkmark SVG */}
+    <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-white dark:bg-black transition-colors duration-300 animate-fade-in">
+      {/* Scale wrapper for pop effect */}
+      <div className="relative w-24 h-24 mb-8 animate-scale">
         <svg className="w-full h-full text-green-500" viewBox="0 0 52 52">
           <circle 
             className="stroke-current text-green-500 opacity-20" 

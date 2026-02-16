@@ -16,6 +16,7 @@ import { ROUTES } from '../constants';
 import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2, Flame, Dumbbell, Scale, Sparkles } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { WelcomeToast } from '../components/WelcomeToast';
+import { SuccessScreen } from '../components/SuccessScreen';
 
 export const AdminDashboard: React.FC = () => {
   const { user, isAdmin } = useAuth();
@@ -41,6 +42,7 @@ export const AdminDashboard: React.FC = () => {
   // Add Item Form State
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [newItem, setNewItem] = useState<{
     name: string;
     description: string;
@@ -219,15 +221,21 @@ export const AdminDashboard: React.FC = () => {
         calories: newItem.calories ? parseInt(newItem.calories) : undefined,
         fitnessGoal: newItem.fitnessGoal || undefined
       });
-      setIsAddingItem(false);
-      setNewItem({
-        name: '', description: '', price: '', category: ProductCategory.Snacks, 
-        imageUrl: '', preparationTime: '10', calories: '', isAvailable: true, fitnessGoal: ''
-      });
-      loadInventory();
+      setShowSuccess(true);
+      // Don't close immediately, wait for animation
     } catch (error: any) {
       alert("Failed to add item: " + error.message);
     }
+  };
+
+  const handleSuccessComplete = () => {
+    setShowSuccess(false);
+    setIsAddingItem(false);
+    setNewItem({
+      name: '', description: '', price: '', category: ProductCategory.Snacks, 
+      imageUrl: '', preparationTime: '10', calories: '', isAvailable: true, fitnessGoal: ''
+    });
+    loadInventory();
   };
 
   const activeOrders = orders.filter(o => [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY].includes(o.status));
@@ -237,6 +245,13 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="space-y-8 pb-20">
       {user && <WelcomeToast name={user.displayName} />}
+      
+      <SuccessScreen 
+        isVisible={showSuccess} 
+        message="Item Added" 
+        subMessage="Menu updated successfully"
+        onComplete={handleSuccessComplete}
+      />
 
       {/* HEADER AREA */}
       <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 border-b border-black dark:border-white pb-8 transition-colors duration-300">
