@@ -240,7 +240,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => signOut(auth);
+  const logout = async () => {
+    // Clear welcome message state so it shows on next login
+    sessionStorage.removeItem('noir_welcome_shown');
+    return signOut(auth);
+  };
 
   const isAdmin = user?.role === UserRole.ADMIN;
 

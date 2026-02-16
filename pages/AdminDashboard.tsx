@@ -15,6 +15,7 @@ import { Navigate } from '../contexts/AuthContext';
 import { ROUTES } from '../constants';
 import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2, Flame, Dumbbell, Scale, Sparkles } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
+import { WelcomeToast } from '../components/WelcomeToast';
 
 export const AdminDashboard: React.FC = () => {
   const { user, isAdmin } = useAuth();
@@ -238,14 +239,11 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-20">
+      {user && <WelcomeToast name={user.displayName} />}
+
       {/* HEADER AREA */}
       <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 border-b border-white pb-8">
         <div>
-           {user && (
-             <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2 animate-fade-in">
-               Welcome, {user.displayName}
-             </p>
-           )}
            <h1 className="text-4xl font-serif font-bold text-white animate-fade-in">Command Center</h1>
            <p className="text-gray-400 mt-2 text-sm">Manage orders, inventory, and store status.</p>
         </div>
