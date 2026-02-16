@@ -186,22 +186,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleError = (err: any) => {
     console.error("Auth Error:", err.code, err.message);
+    let friendlyMessage = err.message || "Authentication failed.";
+
     if (err.code === 'auth/api-key-not-valid.-please-pass-a-valid-api-key.') {
-      setError("Configuration Error: Invalid Firebase API Key.");
+      friendlyMessage = "Configuration Error: Invalid Firebase API Key.";
     } else if (err.code === 'auth/popup-closed-by-user') {
-      setError("Sign in cancelled.");
+      friendlyMessage = "Sign in cancelled.";
     } else if (err.code === 'auth/unauthorized-domain') {
-      setError(`Domain Unauthorized: Add '${window.location.hostname}' to Firebase Console > Auth > Settings > Authorized Domains.`);
+      friendlyMessage = `Domain Unauthorized: Add '${window.location.hostname}' to Firebase Console > Auth > Settings > Authorized Domains.`;
     } else if (err.code === 'auth/email-already-in-use') {
-      setError("This email is already registered. Please login.");
+      friendlyMessage = "This email is already registered. Please login.";
     } else if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-      setError("Account not found or password incorrect. Please Sign Up if you are new.");
+      // Combined generic message for security, updated to be specific as requested
+      friendlyMessage = "Invalid email or password";
     } else if (err.code === 'auth/too-many-requests') {
-      setError("Access to this account has been temporarily disabled due to many failed login attempts. You can immediately restore it by resetting your password or trying again later.");
-    } else {
-      setError(err.message || "Authentication failed.");
+      friendlyMessage = "Access to this account has been temporarily disabled due to many failed login attempts. You can immediately restore it by resetting your password or trying again later.";
     }
-    throw err;
+    
+    setError(friendlyMessage);
+    // Propagate the friendly message as an error so callers (like Login.tsx) catch the user-facing message
+    throw new Error(friendlyMessage);
   };
 
   const signInWithGoogle = async () => {
