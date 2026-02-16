@@ -5,12 +5,13 @@ import { ROUTES } from '../constants';
 import { AlertTriangle } from 'lucide-react';
 import { checkRateLimit, resetRateLimit, validatePassword, validateEmail } from '../utils/security';
 import { UserRole } from '../types';
+import { SuccessScreen } from '../components/SuccessScreen';
 
 type Tab = 'login' | 'signup';
 
 export const Login: React.FC = () => {
   const { user, signInWithGoogle, loginWithEmail, signupWithEmail, loading, error: authError } = useAuth();
-  // We rely on the reactive redirect below.
+  
   const [activeTab, setActiveTab] = useState<Tab>('login');
   
   const [email, setEmail] = useState('');
@@ -18,11 +19,20 @@ export const Login: React.FC = () => {
   const [name, setName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState('');
+  
+  // Animation state
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [redirectPath, setRedirectPath] = useState<string | null>(null);
 
   if (loading) return null;
   
-  // Automatic Redirect based on Role
-  if (user) {
+  // Redirect logic handled via state now to allow animation
+  if (redirectPath) {
+    return <Navigate to={redirectPath} replace />;
+  }
+
+  // Automatic Redirect for already logged in users (skip animation if just visiting page)
+  if (user && !showSuccess) {
     return <Navigate to={user.role === UserRole.ADMIN ? ROUTES.ADMIN : ROUTES.HOME} replace />;
   }
 
@@ -31,13 +41,25 @@ export const Login: React.FC = () => {
     setLocalError('');
   };
 
+  const handleAuthSuccess = () => {
+    setShowSuccess(true);
+    // The redirect happens in the SuccessScreen onComplete callback
+  };
+
+  const onAnimationComplete = () => {
+    if (user) {
+      setRedirectPath(user.role === UserRole.ADMIN ? ROUTES.ADMIN : ROUTES.HOME);
+    } else {
+      // Fallback if user state isn't synced yet, though it should be
+      setRedirectPath(ROUTES.HOME);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError('');
 
     // --- Validation & Security Checks ---
-
-    // 1. Rate Limiting for Login
     if (activeTab === 'login') {
       const rateLimit = checkRateLimit(email);
       if (!rateLimit.allowed) {
@@ -46,13 +68,11 @@ export const Login: React.FC = () => {
       }
     }
 
-    // 2. Email Validation
     if (!validateEmail(email)) {
        setLocalError("Please enter a valid email address.");
        return;
     }
 
-    // 3. Password Validation (Strict check for signup)
     if (activeTab === 'signup') {
       const passValidation = validatePassword(password);
       if (!passValidation.isValid) {
@@ -72,13 +92,10 @@ export const Login: React.FC = () => {
         await signupWithEmail(email, password, name);
       } else {
         await loginWithEmail(email, password);
-        // Successful login, reset rate limit
         resetRateLimit(email);
       }
-      // We do not manually navigate here. 
-      // Successful auth will update the `user` object in context, triggering the redirect above.
+      handleAuthSuccess();
     } catch (err: any) {
-      // Don't reveal exactly why it failed to prevent enumeration (handled generically in AuthContext for user-not-found/wrong-password)
       setLocalError(err.message || "Action failed");
       setIsSubmitting(false);
     }
@@ -88,7 +105,7 @@ export const Login: React.FC = () => {
     setLocalError('');
     try {
       await signInWithGoogle();
-      // Redirect handled by reactive `user` check
+      handleAuthSuccess();
     } catch (err: any) {
       setLocalError(err.message);
     }
@@ -98,6 +115,13 @@ export const Login: React.FC = () => {
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4 py-12">
+      <SuccessScreen 
+        isVisible={showSuccess} 
+        message={activeTab === 'signup' ? "Welcome Aboard" : "Welcome Back"} 
+        subMessage={activeTab === 'signup' ? "Your account has been created" : "Signing you in..."}
+        onComplete={onAnimationComplete}
+      />
+
       <div className="max-w-md w-full bg-white dark:bg-black p-8 shadow-2xl border border-gray-100 dark:border-gray-800 transition-colors duration-300">
         
         <div className="text-center mb-12">

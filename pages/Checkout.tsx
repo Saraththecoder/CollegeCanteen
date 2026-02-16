@@ -8,6 +8,7 @@ import { ROUTES } from '../constants';
 import { ArrowLeft, QrCode, AlertCircle } from 'lucide-react';
 import { UPIPayment } from '../components/UPIPayment';
 import { sanitizeInput } from '../utils/security';
+import { SuccessScreen } from '../components/SuccessScreen';
 
 export const Checkout: React.FC = () => {
   const { items, quantities, totalPrice, clearCart } = useCart();
@@ -25,9 +26,13 @@ export const Checkout: React.FC = () => {
   // Loading & Error State
   const [globalError, setGlobalError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{name?: string; mobile?: string; slot?: string}>({});
+  
+  // Animation State
+  const [showSuccess, setShowSuccess] = useState(false);
 
   if (!user) return <Navigate to={ROUTES.LOGIN} replace />;
-  if (items.length === 0) return <Navigate to={ROUTES.HOME} replace />;
+  // Don't redirect home if we are showing the success animation, even if cart is empty (because clearCart runs before animation completes)
+  if (items.length === 0 && !showSuccess) return <Navigate to={ROUTES.HOME} replace />;
 
   const slots = generateTimeSlots();
 
@@ -85,9 +90,13 @@ export const Checkout: React.FC = () => {
         safeName,
         safeMobile
       );
-      // Order created successfully
+      
+      // Order created successfully - Trigger Animation
+      setShowSuccess(true);
+      
+      // We clear the cart now, but we don't navigate yet. 
+      // The component will stay mounted because of the `showSuccess` check above.
       clearCart();
-      navigate(ROUTES.ORDERS);
     } catch (err: any) {
       console.error(err);
       if (err.message.includes("SLOT_FULL")) {
@@ -99,8 +108,19 @@ export const Checkout: React.FC = () => {
     }
   };
 
+  const onAnimationComplete = () => {
+    navigate(ROUTES.ORDERS);
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4">
+      <SuccessScreen 
+        isVisible={showSuccess} 
+        message="Order Placed" 
+        subMessage="We are preparing your meal"
+        onComplete={onAnimationComplete} 
+      />
+
       {step === 'slot' && (
         <button onClick={() => navigate(-1)} className="flex items-center text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-black dark:hover:text-white mb-8 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-2" /> Return to Menu
