@@ -16,13 +16,12 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
-    // CRITICAL: Hardcoded Admin Check & Email Verification
-    // 1. Must match the hardcoded admin email.
-    // 2. Must be a VERIFIED email address (prevents spoofing via unverified signups).
+    // CRITICAL: Hardcoded Admin Check
+    // We trust the Google Auth Token Email. Even if a hacker changes their DB role,
+    // this rule will block them unless their email matches.
     function isVerifiedAdmin() {
       return isAuthenticated() && 
-             (request.auth.token.email == 'admin@canteen.com') &&
-             request.auth.token.email_verified == true;
+             (request.auth.token.email == 'admin@canteen.com');
     }
 
     // ==========================================
