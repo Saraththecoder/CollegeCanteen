@@ -17,9 +17,9 @@ import { WelcomeToast } from '../components/WelcomeToast';
 import { SuccessScreen } from '../components/SuccessScreen';
 import { hashString } from '../utils/security';
 
-// SHA-256 Hash of the default PIN "admin123"
+// SHA-256 Hash of the default PIN "123456"
 // In a real app, this should be fetched from a secure user setting or environment variable.
-const ADMIN_PIN_HASH = "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9";
+const ADMIN_PIN_HASH = "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92";
 
 export const AdminDashboard: React.FC = () => {
   const { user, isAdmin } = useAuth();
@@ -301,7 +301,7 @@ export const AdminDashboard: React.FC = () => {
           <h2 className="text-2xl font-serif font-bold text-black dark:text-white mb-2">Security Check</h2>
           <p className="text-gray-500 text-sm mb-8">
             Please enter your Admin PIN to decrypt dashboard.
-            <br/><span className="text-xs text-gray-400 mt-2 block">(Default: admin123)</span>
+            <br/><span className="text-xs text-gray-400 mt-2 block">(Default: 123456)</span>
           </p>
           
           <form onSubmit={handleUnlock} className="space-y-4">
@@ -312,7 +312,7 @@ export const AdminDashboard: React.FC = () => {
               placeholder="Enter 6-digit PIN"
               className="w-full text-center text-2xl font-mono tracking-[0.5em] p-4 bg-gray-50 dark:bg-zinc-900 border border-gray-300 dark:border-gray-700 outline-none focus:border-black dark:focus:border-white transition-colors text-black dark:text-white"
               autoFocus
-              maxLength={10}
+              maxLength={6}
             />
             
             {pinError && (

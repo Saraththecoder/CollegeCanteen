@@ -1,4 +1,4 @@
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import * as firebaseApp from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 // import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
@@ -35,13 +35,13 @@ const firebaseConfig = {
 
 export const isFirebaseConfigured = firebaseConfig.apiKey !== "AIzaSyDummyKey";
 
-let app: FirebaseApp;
+let app: firebaseApp.FirebaseApp;
 
 try {
-  if (getApps().length === 0) {
-    app = initializeApp(firebaseConfig);
+  if (firebaseApp.getApps().length === 0) {
+    app = firebaseApp.initializeApp(firebaseConfig);
   } else {
-    app = getApp();
+    app = firebaseApp.getApp();
   }
 } catch (error) {
   console.error("Firebase initialization error", error);
