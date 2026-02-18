@@ -320,7 +320,8 @@ export const AdminDashboard: React.FC = () => {
           </div>
           <h2 className="text-2xl font-serif font-bold text-black dark:text-white mb-2">Security Check</h2>
           <p className="text-gray-500 text-sm mb-8">
-            Please enter your Admin PIN to decrypt dashboard.
+            Please enter your Admin PIN to decrypt dashboard. <br/>
+            <span className="font-mono text-xs">(Default: 756976)</span>
           </p>
           
           <form onSubmit={handleUnlock} className="space-y-4">

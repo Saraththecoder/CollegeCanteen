@@ -1,4 +1,5 @@
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import type { FirebaseApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 // import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
@@ -35,7 +36,7 @@ const firebaseConfig = {
 
 export const isFirebaseConfigured = !!firebaseConfig.apiKey;
 
-let app: FirebaseApp;
+let app: FirebaseApp | undefined;
 
 try {
   // Only initialize if config is present
@@ -75,6 +76,6 @@ if (typeof window !== 'undefined' && isFirebaseConfigured) {
 */
 
 // Export auth/db only if initialized, otherwise handle gracefully in app
-export const auth = app! ? getAuth(app) : {} as any;
+export const auth = app ? getAuth(app) : {} as any;
 export const googleProvider = new GoogleAuthProvider();
-export const db = app! ? getFirestore(app) : {} as any;
+export const db = app ? getFirestore(app) : {} as any;
