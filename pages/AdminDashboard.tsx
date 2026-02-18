@@ -84,8 +84,27 @@ export const AdminDashboard: React.FC = () => {
     setIsVerifyingPin(true);
     setPinError('');
     
+    // Trim whitespace to handle mobile keyboards adding space at end
+    const cleanInput = pinInput.trim();
+
     try {
-      const hash = await hashString(pinInput);
+      // Fallback: If running in an insecure context (e.g. HTTP IP address),
+      // crypto.subtle is unavailable. We do a direct check to prevent lockout during testing.
+      if (!window.crypto || !window.crypto.subtle) {
+         console.warn("Crypto API unavailable (insecure context). Using fallback check.");
+         if (cleanInput === "756976") {
+             setIsLocked(false);
+             setIsVerifyingPin(false);
+             return;
+         } else {
+             setPinError('Incorrect Security PIN');
+             setPinInput('');
+             setIsVerifyingPin(false);
+             return;
+         }
+      }
+
+      const hash = await hashString(cleanInput);
       if (hash === ADMIN_PIN_HASH) {
         setIsLocked(false);
       } else {
@@ -93,7 +112,8 @@ export const AdminDashboard: React.FC = () => {
         setPinInput('');
       }
     } catch (err) {
-      setPinError('Verification failed');
+      console.error("PIN Verification Error:", err);
+      setPinError('Verification system error');
     } finally {
       setIsVerifyingPin(false);
     }
@@ -301,7 +321,6 @@ export const AdminDashboard: React.FC = () => {
           <h2 className="text-2xl font-serif font-bold text-black dark:text-white mb-2">Security Check</h2>
           <p className="text-gray-500 text-sm mb-8">
             Please enter your Admin PIN to decrypt dashboard.
-            <br/><span className="text-xs text-gray-400 mt-2 block">(Default: 756976)</span>
           </p>
           
           <form onSubmit={handleUnlock} className="space-y-4">

@@ -1,4 +1,4 @@
-import * as firebaseApp from 'firebase/app';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 // import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
@@ -35,15 +35,15 @@ const firebaseConfig = {
 
 export const isFirebaseConfigured = !!firebaseConfig.apiKey;
 
-let app: firebaseApp.FirebaseApp;
+let app: FirebaseApp;
 
 try {
   // Only initialize if config is present
   if (isFirebaseConfigured) {
-    if (firebaseApp.getApps().length === 0) {
-      app = firebaseApp.initializeApp(firebaseConfig);
+    if (getApps().length === 0) {
+      app = initializeApp(firebaseConfig);
     } else {
-      app = firebaseApp.getApp();
+      app = getApp();
     }
   } else {
     console.warn("Firebase credentials missing. Please check your .env file.");
