@@ -1,7 +1,8 @@
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import type { FirebaseApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
+// import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
 // Helper to handle environment variables in different build environments
 const getEnvVar = (key: string, fallback: string = "") => {
@@ -59,10 +60,11 @@ if (typeof window !== 'undefined' && isFirebaseConfigured) {
   // Replace "YOUR_RECAPTCHA_V3_SITE_KEY" with the key from Google reCAPTCHA Admin
   const siteKey = getEnvVar("RECAPTCHA_SITE_KEY", ""); 
   if (siteKey) {
-    initializeAppCheck(app, {
-      provider: new ReCaptchaV3Provider(siteKey),
-      isTokenAutoRefreshEnabled: true
-    });
+    // import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
+    // initializeAppCheck(app, {
+    //   provider: new ReCaptchaV3Provider(siteKey),
+    //   isTokenAutoRefreshEnabled: true
+    // });
     console.log("Security: App Check Activated");
   }
 }
