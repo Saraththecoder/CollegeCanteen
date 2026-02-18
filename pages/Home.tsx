@@ -5,6 +5,7 @@ import { MenuItemCard } from '../components/MenuItemCard';
 import { Search, Heart, Leaf } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { WelcomeToast } from '../components/WelcomeToast';
+import { AIChat } from '../components/AIChat';
 
 export const Home: React.FC = () => {
   const { user } = useAuth();
@@ -102,8 +103,11 @@ export const Home: React.FC = () => {
   }
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-12 relative">
       {user && <WelcomeToast name={user.displayName || 'Guest'} />}
+      
+      {/* AIChat Integration - Passes full menu context */}
+      <AIChat menuItems={items} />
       
       {/* Header & Controls */}
       <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8 border-b border-black dark:border-white pb-8 transition-colors duration-300">

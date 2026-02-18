@@ -186,7 +186,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const handleError = (err: any) => {
-    console.error("Auth Error:", err.code, err.message);
+    // Only log actual system errors to console.error, user errors to warn
+    const isUserError = ['auth/wrong-password', 'auth/user-not-found', 'auth/invalid-credential', 'auth/email-already-in-use', 'auth/weak-password'].includes(err.code);
+    
+    if (isUserError) {
+        console.warn("Auth Notice:", err.code);
+    } else {
+        console.error("Auth Error:", err.code, err.message);
+    }
+
     let friendlyMessage = err.message || "Authentication failed.";
 
     if (err.code === 'auth/api-key-not-valid.-please-pass-a-valid-api-key.') {
@@ -198,10 +206,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else if (err.code === 'auth/email-already-in-use') {
       friendlyMessage = "This email is already registered. Please login.";
     } else if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-      // Combined generic message for security, updated to be specific as requested
-      friendlyMessage = "Invalid email or password";
+      // Combined generic message for security
+      friendlyMessage = "Incorrect email or password.";
     } else if (err.code === 'auth/too-many-requests') {
       friendlyMessage = "Access to this account has been temporarily disabled due to many failed login attempts. You can immediately restore it by resetting your password or trying again later.";
+    } else if (err.code === 'auth/network-request-failed') {
+      friendlyMessage = "Network error. Please check your internet connection.";
     }
     
     setError(friendlyMessage);

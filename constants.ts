@@ -10,7 +10,7 @@ export const CURRENCY_SYMBOL = "₹"; // Changed to Rupee for UPI context
 export const APP_NAME = "AITS CANTEEN";
 
 export const TIME_SLOT_INTERVAL_MINUTES = 15;
-export const MAX_ORDERS_PER_SLOT = 20;
+export const MAX_ORDERS_PER_SLOT = 150;
 export const OPENING_HOUR = 8;
 export const CLOSING_HOUR = 20;
 
