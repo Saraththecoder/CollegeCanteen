@@ -11,7 +11,7 @@ import {
 } from '../services/firestoreService';
 import { Order, OrderStatus, MenuItem, ProductCategory } from '../types';
 import { formatTime, formatPrice } from '../utils/formatters';
-import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2, Flame, Dumbbell, Scale, Sparkles } from 'lucide-react';
+import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2, Flame, Dumbbell, Scale, Sparkles, TrendingUp, DollarSign, CreditCard } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { WelcomeToast } from '../components/WelcomeToast';
 import { SuccessScreen } from '../components/SuccessScreen';
@@ -248,6 +248,17 @@ export const AdminDashboard: React.FC = () => {
   const completedOrders = orders.filter(o => [OrderStatus.COMPLETED, OrderStatus.CANCELLED].includes(o.status));
   const displayOrders = activeOrderTab === 'active' ? activeOrders : completedOrders;
 
+  // --- STATISTICS CALCULATION ---
+  const verifiedRevenue = orders
+    .filter(o => [OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.COMPLETED].includes(o.status))
+    .reduce((sum, o) => sum + o.totalAmount, 0);
+
+  const pendingRevenue = orders
+    .filter(o => o.status === OrderStatus.PENDING)
+    .reduce((sum, o) => sum + o.totalAmount, 0);
+
+  const totalOrdersCount = orders.filter(o => o.status !== OrderStatus.CANCELLED).length;
+
   return (
     <div className="space-y-8 pb-20">
       {user && <WelcomeToast name={user.displayName} />}
@@ -294,6 +305,39 @@ export const AdminDashboard: React.FC = () => {
             {isTogglingStore ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
             {isStoreOpen ? 'Online' : 'Offline'}
           </button>
+        </div>
+      </div>
+
+      {/* --- STATISTICS SECTION --- */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
+        <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 p-6 flex items-start justify-between group hover:border-black dark:hover:border-white transition-colors">
+           <div>
+              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 group-hover:text-black dark:group-hover:text-white transition-colors">Verified Revenue</h3>
+              <p className="text-3xl font-serif font-bold text-black dark:text-white mt-2">{formatPrice(verifiedRevenue)}</p>
+           </div>
+           <div className="p-3 bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-500 rounded-full">
+              <DollarSign className="w-5 h-5" />
+           </div>
+        </div>
+
+        <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 p-6 flex items-start justify-between group hover:border-black dark:hover:border-white transition-colors">
+           <div>
+              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 group-hover:text-black dark:group-hover:text-white transition-colors">Pending Verification</h3>
+              <p className="text-3xl font-serif font-bold text-gray-400 dark:text-gray-500 mt-2">{formatPrice(pendingRevenue)}</p>
+           </div>
+           <div className="p-3 bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-500 rounded-full">
+              <CreditCard className="w-5 h-5" />
+           </div>
+        </div>
+
+        <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 p-6 flex items-start justify-between group hover:border-black dark:hover:border-white transition-colors">
+           <div>
+              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 group-hover:text-black dark:group-hover:text-white transition-colors">Total Orders</h3>
+              <p className="text-3xl font-serif font-bold text-black dark:text-white mt-2">{totalOrdersCount}</p>
+           </div>
+           <div className="p-3 bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-500 rounded-full">
+              <TrendingUp className="w-5 h-5" />
+           </div>
         </div>
       </div>
 

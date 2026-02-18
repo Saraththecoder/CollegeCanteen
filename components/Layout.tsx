@@ -28,8 +28,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   const isActive = (path: string) => location.pathname === path;
   const isLoading = authLoading || storeLoading;
-
-  const showClosedScreen = !isLoading && !isStoreOpen && !isAdmin;
+  
+  // Critical Fix: Allow access to login page even if store is closed
+  const isLoginPage = location.pathname === ROUTES.LOGIN;
+  const showClosedScreen = !isLoading && !isStoreOpen && !isAdmin && !isLoginPage;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black text-black dark:text-white flex flex-col font-sans transition-colors duration-300">
