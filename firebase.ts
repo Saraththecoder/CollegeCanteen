@@ -4,7 +4,7 @@ import { getFirestore } from 'firebase/firestore';
 // import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
 // Helper to handle environment variables in different build environments
-const getEnvVar = (key: string, fallback: string = "") => {
+const getEnvVar = (key: string) => {
   // Check for Vite style
   try {
     // @ts-ignore
@@ -17,31 +17,36 @@ const getEnvVar = (key: string, fallback: string = "") => {
   // Check for Next.js / Create React App style
   try {
     if (typeof process !== 'undefined' && process.env) {
-      return process.env[`NEXT_PUBLIC_${key}`] || process.env[`REACT_APP_${key}`] || fallback;
+      return process.env[`NEXT_PUBLIC_${key}`] || process.env[`REACT_APP_${key}`];
     }
   } catch (e) { }
 
-  return fallback;
+  return "";
 };
 
 const firebaseConfig = {
-  apiKey: getEnvVar("FIREBASE_API_KEY", "AIzaSyBVy9hRvP7h7cwI-8is6JSqOgZI9LMdYhY"),
-  authDomain: getEnvVar("FIREBASE_AUTH_DOMAIN", "studio-7053793264-2537e.firebaseapp.com"),
-  projectId: getEnvVar("FIREBASE_PROJECT_ID", "studio-7053793264-2537e"),
-  storageBucket: getEnvVar("FIREBASE_STORAGE_BUCKET", "studio-7053793264-2537e.firebasestorage.app"),
-  messagingSenderId: getEnvVar("FIREBASE_MESSAGING_SENDER_ID", "85567793047"),
-  appId: getEnvVar("FIREBASE_APP_ID", "1:85567793047:web:4ac0793148965d3e6746d2")
+  apiKey: getEnvVar("FIREBASE_API_KEY"),
+  authDomain: getEnvVar("FIREBASE_AUTH_DOMAIN"),
+  projectId: getEnvVar("FIREBASE_PROJECT_ID"),
+  storageBucket: getEnvVar("FIREBASE_STORAGE_BUCKET"),
+  messagingSenderId: getEnvVar("FIREBASE_MESSAGING_SENDER_ID"),
+  appId: getEnvVar("FIREBASE_APP_ID")
 };
 
-export const isFirebaseConfigured = firebaseConfig.apiKey !== "AIzaSyDummyKey";
+export const isFirebaseConfigured = !!firebaseConfig.apiKey;
 
 let app: firebaseApp.FirebaseApp;
 
 try {
-  if (firebaseApp.getApps().length === 0) {
-    app = firebaseApp.initializeApp(firebaseConfig);
+  // Only initialize if config is present
+  if (isFirebaseConfigured) {
+    if (firebaseApp.getApps().length === 0) {
+      app = firebaseApp.initializeApp(firebaseConfig);
+    } else {
+      app = firebaseApp.getApp();
+    }
   } else {
-    app = firebaseApp.getApp();
+    console.warn("Firebase credentials missing. Please check your .env file.");
   }
 } catch (error) {
   console.error("Firebase initialization error", error);
@@ -57,10 +62,10 @@ try {
 /*
 if (typeof window !== 'undefined' && isFirebaseConfigured) {
   // Replace "YOUR_RECAPTCHA_V3_SITE_KEY" with the key from Google reCAPTCHA Admin
-  const siteKey = getEnvVar("RECAPTCHA_SITE_KEY", ""); 
+  const siteKey = getEnvVar("RECAPTCHA_SITE_KEY"); 
   if (siteKey) {
     // import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
-    // initializeAppCheck(app, {
+    // initializeAppCheck(app!, {
     //   provider: new ReCaptchaV3Provider(siteKey),
     //   isTokenAutoRefreshEnabled: true
     // });
@@ -69,6 +74,7 @@ if (typeof window !== 'undefined' && isFirebaseConfigured) {
 }
 */
 
-export const auth = getAuth(app);
+// Export auth/db only if initialized, otherwise handle gracefully in app
+export const auth = app! ? getAuth(app) : {} as any;
 export const googleProvider = new GoogleAuthProvider();
-export const db = getFirestore(app);
+export const db = app! ? getFirestore(app) : {} as any;
