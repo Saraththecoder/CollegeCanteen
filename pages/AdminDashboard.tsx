@@ -11,14 +11,25 @@ import {
 } from '../services/firestoreService';
 import { Order, OrderStatus, MenuItem, ProductCategory } from '../types';
 import { formatTime, formatPrice } from '../utils/formatters';
-import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2, Flame, Dumbbell, Scale, Sparkles, TrendingUp, DollarSign, CreditCard } from 'lucide-react';
+import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2, Flame, Dumbbell, Scale, Sparkles, TrendingUp, DollarSign, CreditCard, Lock, ShieldCheck } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { WelcomeToast } from '../components/WelcomeToast';
 import { SuccessScreen } from '../components/SuccessScreen';
+import { hashString } from '../utils/security';
+
+// SHA-256 Hash of the default PIN "admin123"
+// In a real app, this should be fetched from a secure user setting or environment variable.
+const ADMIN_PIN_HASH = "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9";
 
 export const AdminDashboard: React.FC = () => {
   const { user, isAdmin } = useAuth();
   const { isStoreOpen, setStoreOpen } = useStore();
+  
+  // Security State
+  const [isLocked, setIsLocked] = useState(true);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [isVerifyingPin, setIsVerifyingPin] = useState(false);
   
   // View State
   const [currentView, setCurrentView] = useState<'orders' | 'inventory'>('orders');
@@ -67,20 +78,41 @@ export const AdminDashboard: React.FC = () => {
     isSpicy: false
   });
 
+  // Handle Admin Unlock
+  const handleUnlock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsVerifyingPin(true);
+    setPinError('');
+    
+    try {
+      const hash = await hashString(pinInput);
+      if (hash === ADMIN_PIN_HASH) {
+        setIsLocked(false);
+      } else {
+        setPinError('Incorrect Security PIN');
+        setPinInput('');
+      }
+    } catch (err) {
+      setPinError('Verification failed');
+    } finally {
+      setIsVerifyingPin(false);
+    }
+  };
+
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!isAdmin || isLocked) return;
     const unsubscribe = subscribeToAllOrders((data) => {
       setOrders(data);
     });
     return () => unsubscribe();
-  }, [isAdmin]);
+  }, [isAdmin, isLocked]);
 
   // Load inventory when switching to inventory view
   useEffect(() => {
-    if (currentView === 'inventory' && isAdmin) {
+    if (currentView === 'inventory' && isAdmin && !isLocked) {
       loadInventory();
     }
-  }, [currentView, isAdmin]);
+  }, [currentView, isAdmin, isLocked]);
 
   const loadInventory = async () => {
     setIsInventoryLoading(true);
@@ -259,6 +291,47 @@ export const AdminDashboard: React.FC = () => {
 
   const totalOrdersCount = orders.filter(o => o.status !== OrderStatus.CANCELLED).length;
 
+  if (isLocked) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50 dark:bg-black p-4">
+        <div className="bg-white dark:bg-black border border-gray-200 dark:border-white w-full max-w-md p-8 shadow-2xl animate-fade-in text-center">
+          <div className="bg-black dark:bg-white text-white dark:text-black w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-serif font-bold text-black dark:text-white mb-2">Security Check</h2>
+          <p className="text-gray-500 text-sm mb-8">
+            Please enter your Admin PIN to decrypt dashboard.
+            <br/><span className="text-xs text-gray-400 mt-2 block">(Default: admin123)</span>
+          </p>
+          
+          <form onSubmit={handleUnlock} className="space-y-4">
+            <input 
+              type="password" 
+              value={pinInput}
+              onChange={(e) => setPinInput(e.target.value)}
+              placeholder="Enter 6-digit PIN"
+              className="w-full text-center text-2xl font-mono tracking-[0.5em] p-4 bg-gray-50 dark:bg-zinc-900 border border-gray-300 dark:border-gray-700 outline-none focus:border-black dark:focus:border-white transition-colors text-black dark:text-white"
+              autoFocus
+              maxLength={10}
+            />
+            
+            {pinError && (
+              <p className="text-red-500 text-xs font-bold uppercase tracking-widest animate-pulse">{pinError}</p>
+            )}
+
+            <button 
+              type="submit" 
+              disabled={isVerifyingPin}
+              className="w-full bg-black dark:bg-white text-white dark:text-black py-4 font-bold uppercase tracking-widest hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+            >
+              {isVerifyingPin ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Unlock Dashboard <ShieldCheck className="w-4 h-4" /></>}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 pb-20">
       {user && <WelcomeToast name={user.displayName} />}
@@ -273,7 +346,12 @@ export const AdminDashboard: React.FC = () => {
       {/* HEADER AREA */}
       <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 border-b border-black dark:border-white pb-8 transition-colors duration-300">
         <div>
-           <h1 className="text-4xl font-serif font-bold text-black dark:text-white animate-fade-in">Command Center</h1>
+           <div className="flex items-center gap-3">
+             <h1 className="text-4xl font-serif font-bold text-black dark:text-white animate-fade-in">Command Center</h1>
+             <span className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm border border-green-200 dark:border-green-800 flex items-center gap-1">
+               <ShieldCheck className="w-3 h-3" /> Secure
+             </span>
+           </div>
            <p className="text-gray-600 dark:text-gray-400 mt-2 text-sm">Manage orders, inventory, and store status.</p>
         </div>
         

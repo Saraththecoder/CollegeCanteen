@@ -1,11 +1,11 @@
 
-export const ADMIN_EMAIL = "admin@canteen.com"; // In real app, use process.env.REACT_APP_ADMIN_EMAIL
+export const ADMIN_EMAIL = "admin@canteen.com"; // MUST MATCH firestore.rules
 
 // UPI CONFIGURATION
 export const UPI_VPA = "8074244332@axl"; // REPLACE WITH YOUR MERCHANT UPI ID
 export const UPI_PAYEE_NAME = "AITS Canteen";
 
-export const CURRENCY_SYMBOL = "₹"; // Changed to Rupee for UPI context
+export const CURRENCY_SYMBOL = "₹"; 
 
 export const APP_NAME = "AITS CANTEEN";
 

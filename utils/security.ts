@@ -3,6 +3,15 @@
  * Handles validation, sanitization, and client-side rate limiting.
  */
 
+// --- CRYPTOGRAPHY ---
+
+export const hashString = async (text: string): Promise<string> => {
+  const msgBuffer = new TextEncoder().encode(text);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
 // --- VALIDATION ---
 
 export const validatePassword = (password: string): { isValid: boolean; message?: string } => {
