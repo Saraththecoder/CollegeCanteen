@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { MenuItem } from '../types';
-import { Sparkles, X, Send, User, Bot, Loader2 } from 'lucide-react';
+import { Sparkles, X, Send, User, Loader2 } from 'lucide-react';
 
 interface AIChatProps {
   menuItems: MenuItem[];
