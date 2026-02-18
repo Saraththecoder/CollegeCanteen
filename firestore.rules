@@ -3,133 +3,123 @@ service cloud.firestore {
   match /databases/{database}/documents {
     
     // ==========================================
-    // 1. CORE SECURITY FUNCTIONS
+    // HELPER FUNCTIONS
     // ==========================================
     
-    // Check if user is logged in
     function isAuthenticated() {
       return request.auth != null;
     }
     
-    // Check if the user accessing the data is the owner of the data
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
-    // CRITICAL: Hardcoded Admin Check
-    // We trust the Google Auth Token Email. Even if a hacker changes their DB role,
-    // this rule will block them unless their email matches.
-    function isVerifiedAdmin() {
+    function isAdmin() {
+      // Securely check admin status via token or specific user document
       return isAuthenticated() && 
-             (request.auth.token.email == 'admin@canteen.com');
+             (request.auth.token.email == 'admin@canteen.com' || 
+              (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN'));
     }
 
-    // ==========================================
-    // 2. DATA VALIDATION FUNCTIONS
-    // ==========================================
-    
+    // Data Validation Helpers
     function isString(data) { return data is string; }
     function isNumber(data) { return data is number || data is int || data is float; }
     function isBoolean(data) { return data is bool; }
+    function isNotEmpty(data) { return isString(data) && data.size() > 0; }
     
-    // Field existence check
-    function hasFields(fields) {
-      return request.resource.data.keys().hasAll(fields);
+    // Limits
+    function isValidAmount(amount) {
+      return isNumber(amount) && amount > 0 && amount < 10000; // Cap max order value
     }
     
-    // Prevent modification of specific fields during updates
-    function notUpdating(field) {
-      return !(field in request.resource.data) || resource.data[field] == request.resource.data[field];
+    function isValidPhone(phone) {
+       return isString(phone) && phone.size() >= 10 && phone.size() <= 15;
     }
 
     // ==========================================
-    // 3. COLLECTION RULES
+    // SETTINGS COLLECTION
     // ==========================================
-
-    // --- SETTINGS (Strictly Admin Write) ---
     match /settings/{settingId} {
-      allow read: if true; // Everyone needs to know if store is open
-      allow write: if isVerifiedAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
-    // --- USERS (Anti-Privilege Escalation) ---
+    // ==========================================
+    // USERS COLLECTION
+    // ==========================================
     match /users/{userId} {
-      allow read: if isOwner(userId) || isVerifiedAdmin();
+      allow read: if isOwner(userId) || isAdmin();
       
-      // CREATE: User can create profile, but CANNOT set themselves as ADMIN
       allow create: if isAuthenticated() && 
                        isOwner(userId) &&
-                       request.resource.data.role == 'USER' &&
-                       // Validate Data Types
-                       isString(request.resource.data.email) &&
-                       isString(request.resource.data.displayName);
+                       request.resource.data.keys().hasAll(['email', 'displayName', 'role']) &&
+                       // Prevent role spoofing
+                       request.resource.data.role == 'USER';
       
-      // UPDATE: User can update profile, but CANNOT change their role
       allow update: if isOwner(userId) &&
-                       notUpdating('role'); // Critical: Role is immutable for users
-                       
-      allow delete: if isVerifiedAdmin();
+                       // Prevent role escalation
+                       request.resource.data.role == resource.data.role;
+      
+      allow delete: if isAdmin();
     }
     
-    // --- MENU ITEMS (Public Read, Admin Write) ---
+    // ==========================================
+    // MENU ITEMS COLLECTION
+    // ==========================================
     match /menuItems/{itemId} {
       allow read: if true;
-      allow write: if isVerifiedAdmin(); 
+      allow write: if isAdmin(); 
     }
     
-    // --- ORDERS (High Security Zone) ---
+    // ==========================================
+    // ORDERS COLLECTION
+    // ==========================================
     match /orders/{orderId} {
-      // READ: Admin sees all, User sees own
-      allow read: if isVerifiedAdmin() || 
+      allow read: if isAdmin() || 
                      (isAuthenticated() && resource.data.userId == request.auth.uid);
       
-      // CREATE: Strict Validation
       allow create: if isAuthenticated() &&
-                       // 1. Ownership
                        request.resource.data.userId == request.auth.uid &&
+                       // 1. Validate Amounts
+                       isValidAmount(request.resource.data.totalAmount) &&
                        
-                       // 2. Schema Validation (Must contain these keys)
-                       hasFields(['items', 'totalAmount', 'status', 'customerMobile', 'transactionId']) &&
+                       // 2. Validate Items Structure
+                       request.resource.data.items.size() > 0 &&
+                       request.resource.data.items.size() <= 20 && // Max 20 unique items per order
                        
-                       // 3. Critical Value Checks
-                       (request.resource.data.totalAmount > 0) &&
-                       (request.resource.data.status == 'PENDING') && // Must start as PENDING
+                       // 3. Validate Status (Must start as PENDING)
+                       (request.resource.data.status == 'PENDING') &&
                        
-                       // 4. Data Type Enforcement
-                       isString(request.resource.data.customerMobile) &&
-                       isString(request.resource.data.customerName) &&
-                       isNumber(request.resource.data.totalAmount);
-
-      // UPDATE: State Machine Logic
-      allow update: if 
-        // Scenario A: Admin can update anything (e.g., mark as READY)
-        isVerifiedAdmin() 
-        || 
-        // Scenario B: User cancelling an order
-        (isOwner(resource.data.userId) && 
-         // Can only change status to CANCELLED
-         request.resource.data.status == 'CANCELLED' &&
-         // Can only cancel if currently PENDING or CONFIRMED
-         (resource.data.status == 'PENDING' || resource.data.status == 'CONFIRMED') &&
-         // IMMUTABILITY: User cannot change price, items, or transaction ID during cancel
-         notUpdating('totalAmount') &&
-         notUpdating('items') &&
-         notUpdating('transactionId') &&
-         notUpdating('userId')
-        );
+                       // 4. Validate Contact Info
+                       isNotEmpty(request.resource.data.customerName) &&
+                       request.resource.data.customerName.size() < 100 &&
+                       isValidPhone(request.resource.data.customerMobile);
       
-      allow delete: if isVerifiedAdmin();
+      // Only Admin can change status to CONFIRMED/READY
+      // User can only CANCEL
+      allow update: if isAdmin() || 
+                       (isOwner(resource.data.userId) &&
+                        request.resource.data.status == 'CANCELLED' &&
+                        (resource.data.status == 'PENDING' || resource.data.status == 'CONFIRMED'));
+      
+      allow delete: if isAdmin();
     }
     
-    // --- TIME SLOTS ---
+    // ==========================================
+    // TIME SLOTS
+    // ==========================================
     match /timeSlots/{slotId} {
       allow read: if true;
-      // Allow authenticated users to increment order count (concurrency handled by client transaction)
-      // In a stricter app, this would be a Cloud Function.
+      // In a real app, this should be Cloud Functions only.
+      // For this architecture, we allow authenticated users to update slots 
+      // via the transaction, but we could restrict fields.
       allow write: if isAuthenticated(); 
     }
 
-    // --- DEFAULT DENY ---
+    // ==========================================
+    // CATCH ALL - DENY EVERYTHING ELSE
+    // ==========================================
     match /{document=**} {
       allow read, write: if false;
     }
