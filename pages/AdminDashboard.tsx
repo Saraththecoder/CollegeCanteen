@@ -39,7 +39,6 @@ export const AdminDashboard: React.FC = () => {
   // Add Item Form State
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [newItem, setNewItem] = useState<{
     name: string;
     description: string;
@@ -50,8 +49,6 @@ export const AdminDashboard: React.FC = () => {
     isAvailable: boolean;
     isVegetarian: boolean;
     isSpicy: boolean;
-    calories: string;
-    fitnessGoal: 'muscle_gain' | 'weight_loss' | '';
   }>({
     name: '',
     description: '',
@@ -61,9 +58,7 @@ export const AdminDashboard: React.FC = () => {
     preparationTime: '10',
     isAvailable: true,
     isVegetarian: true,
-    isSpicy: false,
-    calories: '',
-    fitnessGoal: ''
+    isSpicy: false
   });
 
   useEffect(() => {
@@ -90,40 +85,6 @@ export const AdminDashboard: React.FC = () => {
       console.error("Failed to load inventory", e);
     } finally {
       setIsInventoryLoading(false);
-    }
-  };
-
-  const generateDetails = async () => {
-    if (!newItem.name) {
-      alert("Please enter an item name first.");
-      return;
-    }
-    setIsGenerating(true);
-    try {
-      const response = await fetch('/api/generate-details', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name: newItem.name }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate details');
-      }
-
-      const data = await response.json();
-      setNewItem(prev => ({
-        ...prev,
-        description: data.description || prev.description,
-        calories: data.calories ? data.calories.toString() : prev.calories,
-        fitnessGoal: data.fitnessGoal || prev.fitnessGoal,
-      }));
-    } catch (error) {
-      console.error("Error generating details:", error);
-      alert("Failed to generate details. Please try again.");
-    } finally {
-      setIsGenerating(false);
     }
   };
 
@@ -210,9 +171,7 @@ export const AdminDashboard: React.FC = () => {
         preparationTime: parseInt(newItem.preparationTime),
         isAvailable: newItem.isAvailable,
         isVegetarian: newItem.isVegetarian,
-        isSpicy: newItem.isSpicy,
-        calories: newItem.calories ? parseInt(newItem.calories) : undefined,
-        fitnessGoal: newItem.fitnessGoal || undefined
+        isSpicy: newItem.isSpicy
       });
       setShowSuccess(true);
       // Don't close immediately, wait for animation
@@ -227,7 +186,7 @@ export const AdminDashboard: React.FC = () => {
     setNewItem({
       name: '', description: '', price: '', category: ProductCategory.Snacks, 
       imageUrl: '', preparationTime: '10', isAvailable: true,
-      isVegetarian: true, isSpicy: false, calories: '', fitnessGoal: ''
+      isVegetarian: true, isSpicy: false
     });
     loadInventory();
   };
@@ -351,23 +310,13 @@ export const AdminDashboard: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="md:col-span-2 relative group">
                      <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 block font-bold">Item Name</label>
-                     <div className="flex gap-2">
-                       <input 
-                          required 
-                          placeholder="e.g. Chicken Caesar Salad" 
-                          value={newItem.name} 
-                          onChange={e => setNewItem({...newItem, name: e.target.value})}
-                          className="flex-1 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 p-4 text-black dark:text-white outline-none focus:border-black dark:focus:border-white transition-colors" 
-                       />
-                       <button
-                         type="button"
-                         onClick={generateDetails}
-                         disabled={isGenerating || !newItem.name}
-                         className="bg-black dark:bg-white text-white dark:text-black px-6 font-bold uppercase tracking-widest text-xs disabled:opacity-50 hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex items-center gap-2"
-                       >
-                         {isGenerating ? 'Generating...' : 'Auto-fill'}
-                       </button>
-                     </div>
+                     <input 
+                        required 
+                        placeholder="e.g. Chicken Caesar Salad" 
+                        value={newItem.name} 
+                        onChange={e => setNewItem({...newItem, name: e.target.value})}
+                        className="w-full bg-white dark:bg-black border border-gray-300 dark:border-gray-700 p-4 text-black dark:text-white outline-none focus:border-black dark:focus:border-white transition-colors" 
+                     />
                    </div>
                    
                    <div>
@@ -429,20 +378,6 @@ export const AdminDashboard: React.FC = () => {
                         className="w-full bg-white dark:bg-black border border-gray-300 dark:border-gray-700 p-4 text-black dark:text-white outline-none focus:border-black dark:focus:border-white h-24 transition-colors" 
                       />
                    </div>
-
-                   <div>
-                      <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 block font-bold">Calories (kcal)</label>
-                      <input type="number" placeholder="e.g. 350" value={newItem.calories} onChange={e => setNewItem({...newItem, calories: e.target.value})} className="w-full bg-white dark:bg-black border border-gray-300 dark:border-gray-700 p-4 text-black dark:text-white outline-none focus:border-black dark:focus:border-white transition-colors" />
-                   </div>
-
-                   <div>
-                      <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 block font-bold">Fitness Goal</label>
-                      <select value={newItem.fitnessGoal} onChange={e => setNewItem({...newItem, fitnessGoal: e.target.value as any})} className="w-full bg-white dark:bg-black border border-gray-300 dark:border-gray-700 p-4 text-black dark:text-white outline-none focus:border-black dark:focus:border-white transition-colors appearance-none">
-                          <option value="">None</option>
-                          <option value="muscle_gain">Muscle Gain</option>
-                          <option value="weight_loss">Weight Loss</option>
-                      </select>
-                   </div>
                 </div>
                 <button type="submit" className="w-full bg-black dark:bg-white text-white dark:text-black py-4 font-bold uppercase tracking-widest hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">Save Item</button>
              </form>
@@ -468,21 +403,6 @@ export const AdminDashboard: React.FC = () => {
                        {item.isVegetarian !== undefined && (
                          <span className={`flex items-center text-xs font-bold uppercase px-2 py-0.5 border ${item.isVegetarian ? 'text-green-600 border-green-200 bg-green-50' : 'text-red-600 border-red-200 bg-red-50'}`}>
                            {item.isVegetarian ? 'Veg' : 'Non-Veg'}
-                         </span>
-                       )}
-                       {item.isSpicy && (
-                         <span className="flex items-center text-xs font-bold uppercase px-2 py-0.5 border text-orange-600 border-orange-200 bg-orange-50">
-                           Spicy
-                         </span>
-                       )}
-                       {item.calories && (
-                         <span className="flex items-center text-xs font-bold uppercase px-2 py-0.5 border text-gray-600 border-gray-200 bg-gray-50 dark:text-gray-300 dark:border-gray-700 dark:bg-gray-800">
-                           {item.calories} kcal
-                         </span>
-                       )}
-                       {item.fitnessGoal && (
-                         <span className="flex items-center text-xs font-bold uppercase px-2 py-0.5 border text-blue-600 border-blue-200 bg-blue-50">
-                           {item.fitnessGoal.replace('_', ' ')}
                          </span>
                        )}
                     </div>

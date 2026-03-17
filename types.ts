@@ -32,8 +32,6 @@ export interface MenuItem {
   preparationTime: number; // minutes
   isVegetarian?: boolean;
   isSpicy?: boolean;
-  calories?: number;
-  fitnessGoal?: 'muscle_gain' | 'weight_loss' | '';
 }
 
 export interface CartItem extends MenuItem {

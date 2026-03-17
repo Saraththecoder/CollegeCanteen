@@ -16,7 +16,6 @@ import {
   arrayRemove
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import DOMPurify from 'dompurify';
 import { MenuItem, Order, OrderStatus, TimeSlot, ProductCategory } from '../types';
 import { MAX_ORDERS_PER_SLOT } from '../constants';
 
@@ -83,23 +82,11 @@ export const getAllMenuItemsAdmin = async (): Promise<MenuItem[]> => {
 };
 
 export const addMenuItem = async (item: Omit<MenuItem, 'id'>) => {
-  const sanitizedItem = {
-    ...item,
-    name: DOMPurify.sanitize(item.name),
-    description: DOMPurify.sanitize(item.description),
-    imageUrl: DOMPurify.sanitize(item.imageUrl),
-    fitnessGoal: item.fitnessGoal ? (DOMPurify.sanitize(item.fitnessGoal) as 'muscle_gain' | 'weight_loss' | '') : undefined,
-  };
-  return addDoc(collection(db, 'menuItems'), sanitizedItem);
+  return addDoc(collection(db, 'menuItems'), item);
 };
 
 export const updateMenuItem = async (id: string, data: Partial<MenuItem>) => {
-  const sanitizedData = { ...data };
-  if (sanitizedData.name) sanitizedData.name = DOMPurify.sanitize(sanitizedData.name);
-  if (sanitizedData.description) sanitizedData.description = DOMPurify.sanitize(sanitizedData.description);
-  if (sanitizedData.imageUrl) sanitizedData.imageUrl = DOMPurify.sanitize(sanitizedData.imageUrl);
-  if (sanitizedData.fitnessGoal) sanitizedData.fitnessGoal = DOMPurify.sanitize(sanitizedData.fitnessGoal) as 'muscle_gain' | 'weight_loss' | '';
-  return updateDoc(doc(db, 'menuItems', id), sanitizedData);
+  return updateDoc(doc(db, 'menuItems', id), data);
 };
 
 export const deleteMenuItem = async (id: string) => {
@@ -160,9 +147,6 @@ export const createOrder = async (
   customerMobile: string
 ): Promise<string> => {
   
-  const sanitizedCustomerName = DOMPurify.sanitize(customerName);
-  const sanitizedCustomerMobile = DOMPurify.sanitize(customerMobile);
-
   const totalAmount = items.reduce((sum, item) => sum + (item.price * quantities[item.id]), 0);
   const orderItems = items.map(item => ({
     menuItemId: item.id,
@@ -207,8 +191,8 @@ export const createOrder = async (
       const newOrder: Omit<Order, 'id'> = {
         userId,
         userEmail,
-        customerName: sanitizedCustomerName,
-        customerMobile: sanitizedCustomerMobile,
+        customerName,
+        customerMobile,
         items: orderItems,
         totalAmount,
         status: OrderStatus.PENDING,
