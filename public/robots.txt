@@ -1,0 +1,16 @@
+# robots.txt for AITS Canteen
+User-agent: *
+Allow: /
+Allow: /#/
+
+# Prevent crawling of administrative and private pages
+Disallow: /admin
+Disallow: /#/admin
+Disallow: /checkout
+Disallow: /#/checkout
+Disallow: /services
+Disallow: /utils
+
+# Host and Sitemap
+Sitemap: https://aitscanteen1.netlify.app/sitemap.xml
+Host: https://aitscanteen1.netlify.app
