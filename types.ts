@@ -30,10 +30,10 @@ export interface MenuItem {
   imageUrl: string;
   isAvailable: boolean;
   preparationTime: number; // minutes
-  calories?: number;
-  fitnessGoal?: 'muscle_gain' | 'weight_loss';
   isVegetarian?: boolean;
   isSpicy?: boolean;
+  calories?: number;
+  fitnessGoal?: 'muscle_gain' | 'weight_loss' | '';
 }
 
 export interface CartItem extends MenuItem {

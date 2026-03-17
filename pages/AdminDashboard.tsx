@@ -11,8 +11,7 @@ import {
 } from '../services/firestoreService';
 import { Order, OrderStatus, MenuItem, ProductCategory } from '../types';
 import { formatTime, formatPrice } from '../utils/formatters';
-import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2, Flame, Dumbbell, Scale, Sparkles, TrendingUp, DollarSign, CreditCard } from 'lucide-react';
-import { GoogleGenAI, Type } from "@google/genai";
+import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2, TrendingUp, DollarSign, CreditCard } from 'lucide-react';
 import { WelcomeToast } from '../components/WelcomeToast';
 import { SuccessScreen } from '../components/SuccessScreen';
 
@@ -39,8 +38,8 @@ export const AdminDashboard: React.FC = () => {
   
   // Add Item Form State
   const [isAddingItem, setIsAddingItem] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [newItem, setNewItem] = useState<{
     name: string;
     description: string;
@@ -48,11 +47,11 @@ export const AdminDashboard: React.FC = () => {
     category: ProductCategory;
     imageUrl: string;
     preparationTime: string;
-    calories: string;
     isAvailable: boolean;
-    fitnessGoal: 'muscle_gain' | 'weight_loss' | '';
     isVegetarian: boolean;
     isSpicy: boolean;
+    calories: string;
+    fitnessGoal: 'muscle_gain' | 'weight_loss' | '';
   }>({
     name: '',
     description: '',
@@ -60,11 +59,11 @@ export const AdminDashboard: React.FC = () => {
     category: ProductCategory.Snacks,
     imageUrl: '',
     preparationTime: '10',
-    calories: '',
     isAvailable: true,
-    fitnessGoal: '',
     isVegetarian: true,
-    isSpicy: false
+    isSpicy: false,
+    calories: '',
+    fitnessGoal: ''
   });
 
   useEffect(() => {
@@ -91,6 +90,40 @@ export const AdminDashboard: React.FC = () => {
       console.error("Failed to load inventory", e);
     } finally {
       setIsInventoryLoading(false);
+    }
+  };
+
+  const generateDetails = async () => {
+    if (!newItem.name) {
+      alert("Please enter an item name first.");
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const response = await fetch('/api/generate-details', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: newItem.name }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate details');
+      }
+
+      const data = await response.json();
+      setNewItem(prev => ({
+        ...prev,
+        description: data.description || prev.description,
+        calories: data.calories ? data.calories.toString() : prev.calories,
+        fitnessGoal: data.fitnessGoal || prev.fitnessGoal,
+      }));
+    } catch (error) {
+      console.error("Error generating details:", error);
+      alert("Failed to generate details. Please try again.");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -165,51 +198,6 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  const generateDetails = async () => {
-    if (!newItem.name.trim()) return;
-    
-    setIsGenerating(true);
-    try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: `For a dish named "${newItem.name}", generate:
-            1. A short menu description (max 15 words).
-            2. Estimated calories (integer only).
-            3. Fitness goal category: return "muscle_gain" if it is high protein/nutrient dense, or "weight_loss" if it is low calorie/light.
-            4. Is it typically vegetarian? (boolean)`,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        description: { type: Type.STRING },
-                        calories: { type: Type.INTEGER },
-                        fitnessGoal: { type: Type.STRING, enum: ["muscle_gain", "weight_loss"] },
-                        isVegetarian: { type: Type.BOOLEAN }
-                    }
-                }
-            }
-        });
-
-        const text = response.text;
-        if (text) {
-            const data = JSON.parse(text);
-            setNewItem(prev => ({
-                ...prev,
-                description: data.description || prev.description,
-                calories: data.calories ? data.calories.toString() : prev.calories,
-                fitnessGoal: (data.fitnessGoal as 'muscle_gain' | 'weight_loss') || prev.fitnessGoal,
-                isVegetarian: data.isVegetarian !== undefined ? data.isVegetarian : prev.isVegetarian
-            }));
-        }
-    } catch (e) {
-        console.error("AI Generation failed", e);
-    } finally {
-        setIsGenerating(false);
-    }
-  };
-
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -221,10 +209,10 @@ export const AdminDashboard: React.FC = () => {
         imageUrl: newItem.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c',
         preparationTime: parseInt(newItem.preparationTime),
         isAvailable: newItem.isAvailable,
-        calories: newItem.calories ? parseInt(newItem.calories) : undefined,
-        fitnessGoal: newItem.fitnessGoal || undefined,
         isVegetarian: newItem.isVegetarian,
-        isSpicy: newItem.isSpicy
+        isSpicy: newItem.isSpicy,
+        calories: newItem.calories ? parseInt(newItem.calories) : undefined,
+        fitnessGoal: newItem.fitnessGoal || undefined
       });
       setShowSuccess(true);
       // Don't close immediately, wait for animation
@@ -238,8 +226,8 @@ export const AdminDashboard: React.FC = () => {
     setIsAddingItem(false);
     setNewItem({
       name: '', description: '', price: '', category: ProductCategory.Snacks, 
-      imageUrl: '', preparationTime: '10', calories: '', isAvailable: true, fitnessGoal: '',
-      isVegetarian: true, isSpicy: false
+      imageUrl: '', preparationTime: '10', isAvailable: true,
+      isVegetarian: true, isSpicy: false, calories: '', fitnessGoal: ''
     });
     loadInventory();
   };
@@ -363,16 +351,22 @@ export const AdminDashboard: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="md:col-span-2 relative group">
                      <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 block font-bold">Item Name</label>
-                     <input 
-                        required 
-                        placeholder="e.g. Chicken Caesar Salad" 
-                        value={newItem.name} 
-                        onChange={e => setNewItem({...newItem, name: e.target.value})}
-                        onBlur={generateDetails}
-                        className="w-full bg-white dark:bg-black border border-gray-300 dark:border-gray-700 p-4 pr-12 text-black dark:text-white outline-none focus:border-black dark:focus:border-white transition-colors" 
-                     />
-                     <div className="absolute right-3 top-10 text-gray-400">
-                        {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity" />}
+                     <div className="flex gap-2">
+                       <input 
+                          required 
+                          placeholder="e.g. Chicken Caesar Salad" 
+                          value={newItem.name} 
+                          onChange={e => setNewItem({...newItem, name: e.target.value})}
+                          className="flex-1 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 p-4 text-black dark:text-white outline-none focus:border-black dark:focus:border-white transition-colors" 
+                       />
+                       <button
+                         type="button"
+                         onClick={generateDetails}
+                         disabled={isGenerating || !newItem.name}
+                         className="bg-black dark:bg-white text-white dark:text-black px-6 font-bold uppercase tracking-widest text-xs disabled:opacity-50 hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex items-center gap-2"
+                       >
+                         {isGenerating ? 'Generating...' : 'Auto-fill'}
+                       </button>
                      </div>
                    </div>
                    
@@ -393,39 +387,8 @@ export const AdminDashboard: React.FC = () => {
                       <input type="number" placeholder="10" value={newItem.preparationTime} onChange={e => setNewItem({...newItem, preparationTime: e.target.value})} className="w-full bg-white dark:bg-black border border-gray-300 dark:border-gray-700 p-4 text-black dark:text-white outline-none focus:border-black dark:focus:border-white transition-colors" />
                    </div>
                    
-                   {/* Attributes Section */}
-                   <div className="grid grid-cols-2 gap-4 md:col-span-1">
-                     <div className="relative">
-                       <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 block font-bold flex items-center gap-1">
-                          Calories {isGenerating && <Loader2 className="w-3 h-3 animate-spin" />}
-                       </label>
-                       <input 
-                          type="number" 
-                          placeholder="Auto-calc" 
-                          value={newItem.calories} 
-                          onChange={e => setNewItem({...newItem, calories: e.target.value})} 
-                          className={`w-full bg-white dark:bg-black border border-gray-300 dark:border-gray-700 p-4 text-black dark:text-white outline-none focus:border-black dark:focus:border-white transition-colors ${isGenerating ? 'opacity-50' : ''}`}
-                       />
-                     </div>
-                     
-                     <div className="relative">
-                       <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 block font-bold flex items-center gap-1">
-                          Goal {isGenerating && <Loader2 className="w-3 h-3 animate-spin" />}
-                       </label>
-                       <select 
-                          value={newItem.fitnessGoal} 
-                          onChange={e => setNewItem({...newItem, fitnessGoal: e.target.value as any})} 
-                          className={`w-full bg-white dark:bg-black border border-gray-300 dark:border-gray-700 p-4 text-black dark:text-white outline-none focus:border-black dark:focus:border-white transition-colors appearance-none ${isGenerating ? 'opacity-50' : ''}`}
-                       >
-                          <option value="">None</option>
-                          <option value="muscle_gain">Muscle Gain</option>
-                          <option value="weight_loss">Weight Loss</option>
-                       </select>
-                     </div>
-                   </div>
-
                    {/* New Dietary Flags */}
-                   <div className="grid grid-cols-2 gap-4 md:col-span-1">
+                   <div className="grid grid-cols-2 gap-4 md:col-span-2">
                       <div className="flex items-center h-full pt-6">
                         <label className="flex items-center cursor-pointer gap-2">
                            <input 
@@ -457,14 +420,28 @@ export const AdminDashboard: React.FC = () => {
                    
                    <div className="md:col-span-2">
                       <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 block font-bold flex items-center gap-1">
-                         Description {isGenerating && <Loader2 className="w-3 h-3 animate-spin" />}
+                         Description
                       </label>
                       <textarea 
-                        placeholder="Auto-generated description..." 
+                        placeholder="Enter description..." 
                         value={newItem.description} 
                         onChange={e => setNewItem({...newItem, description: e.target.value})} 
-                        className={`w-full bg-white dark:bg-black border border-gray-300 dark:border-gray-700 p-4 text-black dark:text-white outline-none focus:border-black dark:focus:border-white h-24 transition-colors ${isGenerating ? 'opacity-50' : ''}`} 
+                        className="w-full bg-white dark:bg-black border border-gray-300 dark:border-gray-700 p-4 text-black dark:text-white outline-none focus:border-black dark:focus:border-white h-24 transition-colors" 
                       />
+                   </div>
+
+                   <div>
+                      <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 block font-bold">Calories (kcal)</label>
+                      <input type="number" placeholder="e.g. 350" value={newItem.calories} onChange={e => setNewItem({...newItem, calories: e.target.value})} className="w-full bg-white dark:bg-black border border-gray-300 dark:border-gray-700 p-4 text-black dark:text-white outline-none focus:border-black dark:focus:border-white transition-colors" />
+                   </div>
+
+                   <div>
+                      <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 block font-bold">Fitness Goal</label>
+                      <select value={newItem.fitnessGoal} onChange={e => setNewItem({...newItem, fitnessGoal: e.target.value as any})} className="w-full bg-white dark:bg-black border border-gray-300 dark:border-gray-700 p-4 text-black dark:text-white outline-none focus:border-black dark:focus:border-white transition-colors appearance-none">
+                          <option value="">None</option>
+                          <option value="muscle_gain">Muscle Gain</option>
+                          <option value="weight_loss">Weight Loss</option>
+                      </select>
                    </div>
                 </div>
                 <button type="submit" className="w-full bg-black dark:bg-white text-white dark:text-black py-4 font-bold uppercase tracking-widest hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">Save Item</button>
@@ -480,11 +457,6 @@ export const AdminDashboard: React.FC = () => {
                 <div key={item.id} className={`flex flex-col md:flex-row items-center gap-6 p-6 bg-white dark:bg-black border transition-colors duration-300 ${item.isAvailable ? 'border-gray-200 dark:border-gray-800' : 'border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/10'}`}>
                   <div className="w-20 h-20 bg-gray-100 dark:bg-gray-900 flex-shrink-0 relative group border border-gray-200 dark:border-gray-800">
                     <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                    {item.calories && (
-                       <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-[10px] text-white text-center py-0.5">
-                         {item.calories} cal
-                       </div>
-                    )}
                   </div>
                   
                   <div className="flex-grow text-center md:text-left">
@@ -498,20 +470,19 @@ export const AdminDashboard: React.FC = () => {
                            {item.isVegetarian ? 'Veg' : 'Non-Veg'}
                          </span>
                        )}
-                       
+                       {item.isSpicy && (
+                         <span className="flex items-center text-xs font-bold uppercase px-2 py-0.5 border text-orange-600 border-orange-200 bg-orange-50">
+                           Spicy
+                         </span>
+                       )}
                        {item.calories && (
-                         <span className="flex items-center text-xs text-orange-600 dark:text-orange-500">
-                           <Flame className="w-3 h-3 mr-0.5" /> {item.calories}
+                         <span className="flex items-center text-xs font-bold uppercase px-2 py-0.5 border text-gray-600 border-gray-200 bg-gray-50 dark:text-gray-300 dark:border-gray-700 dark:bg-gray-800">
+                           {item.calories} kcal
                          </span>
                        )}
-                       {item.fitnessGoal === 'muscle_gain' && (
-                         <span className="flex items-center text-xs text-blue-600 dark:text-blue-400 font-bold uppercase">
-                           <Dumbbell className="w-3 h-3 mr-1" /> Muscle Gain
-                         </span>
-                       )}
-                       {item.fitnessGoal === 'weight_loss' && (
-                         <span className="flex items-center text-xs text-green-600 dark:text-green-400 font-bold uppercase">
-                           <Scale className="w-3 h-3 mr-1" /> Weight Loss
+                       {item.fitnessGoal && (
+                         <span className="flex items-center text-xs font-bold uppercase px-2 py-0.5 border text-blue-600 border-blue-200 bg-blue-50">
+                           {item.fitnessGoal.replace('_', ' ')}
                          </span>
                        )}
                     </div>

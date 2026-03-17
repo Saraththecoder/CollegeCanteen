@@ -16,17 +16,18 @@ import {
   arrayRemove
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import DOMPurify from 'dompurify';
 import { MenuItem, Order, OrderStatus, TimeSlot, ProductCategory } from '../types';
 import { MAX_ORDERS_PER_SLOT } from '../constants';
 
 // Mock data for fallback when Firestore permissions are missing
 export const MOCK_MENU_ITEMS: MenuItem[] = [
-  { id: 'mock1', name: 'Avocado Toast', description: 'Sourdough, smashed avocado, chili flakes.', price: 12, category: ProductCategory.Breakfast, preparationTime: 10, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1588137372308-15f75323ca8d?auto=format&fit=crop&w=800&q=80', calories: 320, fitnessGoal: 'weight_loss', isVegetarian: true, isSpicy: true },
-  { id: 'mock2', name: 'Truffle Burger', description: 'Angus beef, truffle mayo, brioche bun.', price: 18, category: ProductCategory.Lunch, preparationTime: 20, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80', calories: 850, fitnessGoal: 'muscle_gain', isVegetarian: false },
-  { id: 'mock3', name: 'Quinoa Salad', description: 'Kale, quinoa, cherry tomatoes, lemon vinaigrette.', price: 14, category: ProductCategory.Lunch, preparationTime: 10, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80', calories: 420, fitnessGoal: 'weight_loss', isVegetarian: true },
-  { id: 'mock4', name: 'Espresso', description: 'Double shot single origin.', price: 3.5, category: ProductCategory.Beverages, preparationTime: 5, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80', calories: 5, isVegetarian: true },
-  { id: 'mock5', name: 'Matcha Latte', description: 'Ceremonial grade matcha, oat milk.', price: 5.5, category: ProductCategory.Beverages, preparationTime: 5, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1515825838458-f2a94b20105a?auto=format&fit=crop&w=800&q=80', calories: 120, isVegetarian: true },
-  { id: 'mock6', name: 'Acai Bowl', description: 'Organic acai, granola, fresh berries.', price: 15, category: ProductCategory.Breakfast, preparationTime: 12, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1590301157890-4810ed352733?auto=format&fit=crop&w=800&q=80', calories: 450, fitnessGoal: 'weight_loss', isVegetarian: true },
+  { id: 'mock1', name: 'Avocado Toast', description: 'Sourdough, smashed avocado, chili flakes.', price: 12, category: ProductCategory.Breakfast, preparationTime: 10, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1588137372308-15f75323ca8d?auto=format&fit=crop&w=800&q=80', isVegetarian: true, isSpicy: true },
+  { id: 'mock2', name: 'Truffle Burger', description: 'Angus beef, truffle mayo, brioche bun.', price: 18, category: ProductCategory.Lunch, preparationTime: 20, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80', isVegetarian: false },
+  { id: 'mock3', name: 'Quinoa Salad', description: 'Kale, quinoa, cherry tomatoes, lemon vinaigrette.', price: 14, category: ProductCategory.Lunch, preparationTime: 10, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80', isVegetarian: true },
+  { id: 'mock4', name: 'Espresso', description: 'Double shot single origin.', price: 3.5, category: ProductCategory.Beverages, preparationTime: 5, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80', isVegetarian: true },
+  { id: 'mock5', name: 'Matcha Latte', description: 'Ceremonial grade matcha, oat milk.', price: 5.5, category: ProductCategory.Beverages, preparationTime: 5, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1515825838458-f2a94b20105a?auto=format&fit=crop&w=800&q=80', isVegetarian: true },
+  { id: 'mock6', name: 'Acai Bowl', description: 'Organic acai, granola, fresh berries.', price: 15, category: ProductCategory.Breakfast, preparationTime: 12, isAvailable: true, imageUrl: 'https://images.unsplash.com/photo-1590301157890-4810ed352733?auto=format&fit=crop&w=800&q=80', isVegetarian: true },
 ];
 
 // --- SETTINGS ---
@@ -82,11 +83,23 @@ export const getAllMenuItemsAdmin = async (): Promise<MenuItem[]> => {
 };
 
 export const addMenuItem = async (item: Omit<MenuItem, 'id'>) => {
-  return addDoc(collection(db, 'menuItems'), item);
+  const sanitizedItem = {
+    ...item,
+    name: DOMPurify.sanitize(item.name),
+    description: DOMPurify.sanitize(item.description),
+    imageUrl: DOMPurify.sanitize(item.imageUrl),
+    fitnessGoal: item.fitnessGoal ? (DOMPurify.sanitize(item.fitnessGoal) as 'muscle_gain' | 'weight_loss' | '') : undefined,
+  };
+  return addDoc(collection(db, 'menuItems'), sanitizedItem);
 };
 
 export const updateMenuItem = async (id: string, data: Partial<MenuItem>) => {
-  return updateDoc(doc(db, 'menuItems', id), data);
+  const sanitizedData = { ...data };
+  if (sanitizedData.name) sanitizedData.name = DOMPurify.sanitize(sanitizedData.name);
+  if (sanitizedData.description) sanitizedData.description = DOMPurify.sanitize(sanitizedData.description);
+  if (sanitizedData.imageUrl) sanitizedData.imageUrl = DOMPurify.sanitize(sanitizedData.imageUrl);
+  if (sanitizedData.fitnessGoal) sanitizedData.fitnessGoal = DOMPurify.sanitize(sanitizedData.fitnessGoal) as 'muscle_gain' | 'weight_loss' | '';
+  return updateDoc(doc(db, 'menuItems', id), sanitizedData);
 };
 
 export const deleteMenuItem = async (id: string) => {
@@ -147,6 +160,9 @@ export const createOrder = async (
   customerMobile: string
 ): Promise<string> => {
   
+  const sanitizedCustomerName = DOMPurify.sanitize(customerName);
+  const sanitizedCustomerMobile = DOMPurify.sanitize(customerMobile);
+
   const totalAmount = items.reduce((sum, item) => sum + (item.price * quantities[item.id]), 0);
   const orderItems = items.map(item => ({
     menuItemId: item.id,
@@ -191,8 +207,8 @@ export const createOrder = async (
       const newOrder: Omit<Order, 'id'> = {
         userId,
         userEmail,
-        customerName,
-        customerMobile,
+        customerName: sanitizedCustomerName,
+        customerMobile: sanitizedCustomerMobile,
         items: orderItems,
         totalAmount,
         status: OrderStatus.PENDING,

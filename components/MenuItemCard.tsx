@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MenuItem } from '../types';
 import { formatPrice } from '../utils/formatters';
-import { Plus, Clock, Flame, Dumbbell, Scale, Heart } from 'lucide-react';
+import { Plus, Clock, Flame, Heart } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { toggleFavorite } from '../services/firestoreService';
@@ -65,18 +65,6 @@ export const MenuItemCard: React.FC<Props> = ({ item, isFavorite = false, onTogg
             <span className="bg-black dark:bg-white text-white dark:text-black text-xs font-bold px-4 py-2 uppercase tracking-widest border border-black dark:border-white">Sold Out</span>
           </div>
         )}
-        
-        {/* Fitness Goal Badge */}
-        {item.fitnessGoal === 'muscle_gain' && (
-          <div className="absolute top-2 left-2 bg-blue-600/90 text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider flex items-center backdrop-blur-sm shadow-sm">
-             <Dumbbell className="w-3 h-3 mr-1" /> Muscle Gain
-          </div>
-        )}
-        {item.fitnessGoal === 'weight_loss' && (
-          <div className="absolute top-2 left-2 bg-green-600/90 text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider flex items-center backdrop-blur-sm shadow-sm">
-             <Scale className="w-3 h-3 mr-1" /> Weight Loss
-          </div>
-        )}
 
         {/* Favorite Button */}
         {user && (
@@ -109,12 +97,6 @@ export const MenuItemCard: React.FC<Props> = ({ item, isFavorite = false, onTogg
                 <Clock className="w-3 h-3 mr-2" />
                 {item.preparationTime} MIN
             </div>
-            {item.calories && (
-                <div className="flex items-center text-xs text-orange-500 font-mono uppercase tracking-wide">
-                    <Flame className="w-3 h-3 mr-1" />
-                    {item.calories} CAL
-                </div>
-            )}
           </div>
           
           <button 
