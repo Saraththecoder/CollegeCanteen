@@ -2,10 +2,42 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
+
+    <!-- Viewport (keep only one) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Google Verification -->
     <meta name="google-site-verification" content="TtIXWFoIpLgN1d-CwjeI10BcrdhdrzqMhVKvBqZgJxs" />
-    <title>Aits Canteen</title>
+
+    <!-- Primary SEO -->
+    <title>AITS College Canteen Menu | Prices, Timings & Food List</title>
+
+    <meta name="description" content="Explore AITS college canteen menu, daily specials, food prices, and timings. Affordable and fresh meals for students.">
+
+    <meta name="keywords" content="AITS canteen, college canteen menu, student food, canteen prices, campus food">
+
+    <meta name="author" content="AITS College">
+
+    <meta name="robots" content="index, follow">
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://aitscanteen1.netlify.app/" />
+
+    <!-- Open Graph (for sharing) -->
+    <meta property="og:title" content="AITS College Canteen Menu">
+    <meta property="og:description" content="Check menu, prices, and timings of AITS college canteen">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://your-actual-site-url.com/">
+
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.ico" />
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+
+    <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
+
     <script>
       tailwind.config = {
         darkMode: 'class',
@@ -26,72 +58,44 @@
                 800: '#262626',
                 900: '#171717',
               }
-            },
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              serif: ['Playfair Display', 'serif'],
-              mono: ['JetBrains Mono', 'monospace'],
-            },
-            keyframes: {
-              slideIn: {
-                '0%': { transform: 'translateX(100%)' },
-                '100%': { transform: 'translateX(0)' },
-              },
-              fadeIn: {
-                '0%': { opacity: '0', transform: 'translateY(10px)' },
-                '100%': { opacity: '1', transform: 'translateY(0)' },
-              },
-              pop: {
-                '0%': { transform: 'scale(1)' },
-                '50%': { transform: 'scale(1.15)' },
-                '100%': { transform: 'scale(1)' },
-              },
-              shimmer: {
-                '0%': { backgroundPosition: '-200% 0' },
-                '100%': { backgroundPosition: '200% 0' },
-              },
-              stroke: {
-                '100%': { strokeDashoffset: '0' }
-              },
-              scale: {
-                '0%, 100%': { transform: 'none' },
-                '50%': { transform: 'scale3d(1.1, 1.1, 1)' }
-              },
-              fill: {
-                '100%': { boxShadow: 'inset 0px 0px 0px 30px #22c55e' } // Green-500
-              }
-            },
-            animation: {
-              'slide-in': 'slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              'fade-in': 'fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards',
-              'pop': 'pop 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              'shimmer': 'shimmer 2s infinite linear',
-              'stroke': 'stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards',
-              'scale': 'scale 0.3s cubic-bezier(0.39, 0.575, 0.565, 1) forwards',
             }
           }
         }
       }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
-<script type="importmap">
-{
-  "imports": {
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.564.0",
-    "vite": "https://esm.sh/vite@^7.3.1",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.4",
-    "firebase/": "https://esm.sh/firebase@^12.9.0/",
-    "qrcode.react": "https://esm.sh/qrcode.react@^4.2.0",
-    "@stripe/react-stripe-js": "https://esm.sh/@stripe/react-stripe-js@^5.6.0",
-    "@google/genai": "https://esm.sh/@google/genai"
-  }
-}
-</script>
-</head>
-  <body class="bg-gray-50 dark:bg-black text-black dark:text-white antialiased transition-colors duration-300 selection:bg-black selection:text-white dark:selection:bg-white dark:selection:text-black">
+
+    <!-- Structured Data (SEO boost) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Restaurant",
+      "name": "AITS College Canteen",
+      "servesCuisine": "Indian",
+      "priceRange": "₹",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "India"
+      }
+    }
+    </script>
+
+    <!-- React Import Map -->
+    <script type="importmap">
+    {
+      "imports": {
+        "react/": "https://esm.sh/react@^19.2.4/",
+        "react": "https://esm.sh/react@^19.2.4",
+        "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+        "lucide-react": "https://esm.sh/lucide-react@^0.564.0",
+        "firebase/": "https://esm.sh/firebase@^12.9.0/",
+        "qrcode.react": "https://esm.sh/qrcode.react@^4.2.0"
+      }
+    }
+    </script>
+
+  </head>
+
+  <body class="bg-gray-50 dark:bg-black text-black dark:text-white antialiased transition-colors duration-300">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
