@@ -300,17 +300,8 @@ export const Checkout: React.FC = () => {
 
             {step === 'slot' && (
               <>
-                {user?.verified === false ? (
-                  <div className="w-full text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900 mb-4">
-                    <p className="text-yellow-800 dark:text-yellow-500 text-xs font-bold uppercase tracking-widest mb-1">Verification Required</p>
-                    <p className="text-yellow-700 dark:text-yellow-600 text-xs leading-relaxed">
-                      Your account needs a one-time verification. Please visit the canteen counter with your ID so staff can approve your account — after that you can order normally.
-                    </p>
-                  </div>
-                ) : null}
                 <button
                   onClick={handleProceedToPayment}
-                  disabled={user?.verified === false}
                   className="w-full flex justify-center items-center px-6 py-5 bg-black dark:bg-white text-white dark:text-black text-sm font-bold uppercase tracking-widest hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all group"
                 >
                     <>

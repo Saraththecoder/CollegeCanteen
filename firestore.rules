@@ -75,7 +75,7 @@ service cloud.firestore {
                        // Prevent role spoofing
                        request.resource.data.role == 'USER' &&
                        // Ensure verified is set correctly
-                       request.resource.data.verified == (request.auth.token.email.matches('.*@aits-tpt[.]edu[.]in$'));
+                       request.resource.data.verified == true;
       
       allow update: if (isOwner(userId) &&
                        (
@@ -107,7 +107,6 @@ service cloud.firestore {
                      (isAuthenticated() && resource.data.userId == request.auth.uid);
       
       allow create: if isAuthenticated() &&
-                       isAccountVerified() &&
                        request.resource.data.userId == request.auth.uid &&
                        // 1. Validate Amounts
                        isValidAmount(request.resource.data.totalAmount) &&

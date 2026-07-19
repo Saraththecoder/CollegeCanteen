@@ -157,10 +157,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             role = userSnap.data().role;
           }
 
-          const isCollegeEmail = firebaseUser.email?.toLowerCase().endsWith('@aits-tpt.edu.in') ?? false;
           const verified = userSnap.exists() && userSnap.data().verified !== undefined 
             ? userSnap.data().verified 
-            : isCollegeEmail;
+            : true;
 
           // Define profile data
           const profile: UserProfile = {
