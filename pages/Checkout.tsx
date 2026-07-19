@@ -41,7 +41,7 @@ export const Checkout: React.FC = () => {
 
   const slots = generateTimeSlots();
 
-  const handleProceedToPayment = () => {
+  const handleProceedToPayment = async () => {
     const errors: {name?: string; mobile?: string; slot?: string} = {};
     let hasError = false;
 
@@ -68,6 +68,26 @@ export const Checkout: React.FC = () => {
     if (hasError) {
       setGlobalError("Please correct the highlighted errors before proceeding.");
       return;
+    }
+
+    // Client-side Price Verification (Defense against stale cached prices)
+    try {
+      // Fetch live menu items to compare
+      const { getMenuItems } = await import('../services/firestoreService');
+      const liveMenu = await getMenuItems(true);
+      
+      const realTotal = items.reduce((sum, cartItem) => {
+        const liveItem = liveMenu.find(m => m.id === cartItem.id);
+        const price = liveItem ? liveItem.price : cartItem.price;
+        return sum + (price * quantities[cartItem.id]);
+      }, 0);
+
+      if (Math.abs(realTotal - totalPrice) > 0.01) {
+        setGlobalError("Prices have changed since you added items to your cart. Please refresh the page to see updated prices.");
+        return;
+      }
+    } catch (e) {
+      console.warn("Could not verify prices against live DB", e);
     }
 
     setGlobalError('');
@@ -191,6 +211,7 @@ export const Checkout: React.FC = () => {
                         }`}
                         placeholder="e.g. 9876543210"
                       />
+                      <p className="text-[10px] text-gray-500 mt-1">Your phone number is only used to contact you about this order and is not shared with anyone else.</p>
                       {fieldErrors.mobile && (
                         <p className="text-red-500 text-xs mt-2 flex items-center font-medium">
                           <AlertCircle className="w-3 h-3 mr-1" /> {fieldErrors.mobile}
@@ -277,14 +298,25 @@ export const Checkout: React.FC = () => {
             </div>
 
             {step === 'slot' && (
-              <button
-                onClick={handleProceedToPayment}
-                className="w-full flex justify-center items-center px-6 py-5 bg-black dark:bg-white text-white dark:text-black text-sm font-bold uppercase tracking-widest hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all group"
-              >
-                  <>
-                    Proceed to Payment <QrCode className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </>
-              </button>
+              <>
+                {user?.verified === false ? (
+                  <div className="w-full text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900 mb-4">
+                    <p className="text-yellow-800 dark:text-yellow-500 text-xs font-bold uppercase tracking-widest mb-1">Verification Required</p>
+                    <p className="text-yellow-700 dark:text-yellow-600 text-xs leading-relaxed">
+                      Your account needs a one-time verification. Please visit the canteen counter with your ID so staff can approve your account — after that you can order normally.
+                    </p>
+                  </div>
+                ) : null}
+                <button
+                  onClick={handleProceedToPayment}
+                  disabled={user?.verified === false}
+                  className="w-full flex justify-center items-center px-6 py-5 bg-black dark:bg-white text-white dark:text-black text-sm font-bold uppercase tracking-widest hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all group"
+                >
+                    <>
+                      Proceed to Payment <QrCode className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                    </>
+                </button>
+              </>
             )}
             
             {step === 'slot' && !selectedSlot && (

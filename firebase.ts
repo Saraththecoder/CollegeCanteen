@@ -2,7 +2,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import type { FirebaseApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-// import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
 // Helper to handle environment variables in different build environments
 const getEnvVar = (key: string, fallback: string = "") => {
@@ -49,26 +49,28 @@ try {
   throw error;
 }
 
-// --- SECURITY: APP CHECK ---
-// To enable strict security (preventing bots and scripts from accessing your DB),
-// 1. Go to Firebase Console -> App Check
-// 2. Register your site with reCAPTCHA v3
-// 3. Add the key below and uncomment the code.
+// --- SECURITY: APP CHECK (reCAPTCHA v3) ---
+// To get your free site key:
+// 1. Go to https://www.google.com/recaptcha/admin/create
+// 2. Set a label (e.g., "Canteen App")
+// 3. Select "reCAPTCHA v3" as the reCAPTCHA type
+// 4. Add your domains (e.g., localhost, your-app.web.app)
+// 5. Submit and copy the "Site Key" provided.
+// 6. Add it to your .env file as: VITE_RECAPTCHA_SITE_KEY=your_site_key_here
+// Note: Do NOT enforce App Check in the Firebase Console until you have tested 
+// and confirmed this works in production, or you will lock yourself out!
 
-/*
 if (typeof window !== 'undefined' && isFirebaseConfigured) {
-  // Replace "YOUR_RECAPTCHA_V3_SITE_KEY" with the key from Google reCAPTCHA Admin
-  const siteKey = getEnvVar("RECAPTCHA_SITE_KEY", ""); 
+  // @ts-ignore
+  const siteKey = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_RECAPTCHA_SITE_KEY : ""; 
   if (siteKey) {
-    // import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
-    // initializeAppCheck(app, {
-    //   provider: new ReCaptchaV3Provider(siteKey),
-    //   isTokenAutoRefreshEnabled: true
-    // });
+    initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider(siteKey),
+      isTokenAutoRefreshEnabled: true
+    });
     console.log("Security: App Check Activated");
   }
 }
-*/
 
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();

@@ -20,35 +20,36 @@ export const Home: React.FC = () => {
   
   const isInitialized = useRef(false);
 
+  const fetchMenu = async (forceRefresh = false) => {
+    setLoading(true);
+    try {
+      let data = await getMenuItems(forceRefresh);
+      
+      if (data.length === 0) {
+        if (user) {
+          try {
+            await seedMenu();
+            data = await getMenuItems(forceRefresh);
+          } catch (e) {
+            data = MOCK_MENU_ITEMS;
+          }
+        } else {
+           data = MOCK_MENU_ITEMS;
+        }
+      }
+      
+      setItems(data);
+    } catch (err) {
+      console.error("Unexpected error in Home", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch Menu
   useEffect(() => {
     if (isInitialized.current) return;
     isInitialized.current = true;
-
-    const fetchMenu = async () => {
-      try {
-        let data = await getMenuItems();
-        
-        if (data.length === 0) {
-          if (user) {
-            try {
-              await seedMenu();
-              data = await getMenuItems();
-            } catch (e) {
-              data = MOCK_MENU_ITEMS;
-            }
-          } else {
-             data = MOCK_MENU_ITEMS;
-          }
-        }
-        
-        setItems(data);
-      } catch (err) {
-        console.error("Unexpected error in Home", err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchMenu();
   }, [user]);
 
@@ -115,6 +116,13 @@ export const Home: React.FC = () => {
         <div className="w-full xl:w-auto flex flex-col md:flex-row gap-6 md:items-center">
           {/* Smart Filters */}
           <div className="flex gap-3">
+             <button
+               onClick={() => fetchMenu(true)}
+               className="flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-widest border border-gray-300 dark:border-gray-700 text-gray-500 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white transition-all"
+             >
+               Refresh
+             </button>
+
              <button
                onClick={() => setShowVegOnly(!showVegOnly)}
                className={`flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-widest border transition-all ${

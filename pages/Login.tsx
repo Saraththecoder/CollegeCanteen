@@ -191,9 +191,6 @@ export const Login: React.FC = () => {
                 required
                 minLength={6}
               />
-              {activeTab === 'signup' && (
-                <p className="text-[10px] text-gray-500">Min 8 chars, 1 uppercase, 1 lowercase, 1 number.</p>
-              )}
             </div>
 
             <button
@@ -205,19 +202,29 @@ export const Login: React.FC = () => {
             </button>
           </form>
 
-          <div className="relative my-10 text-center">
-            <span className="bg-white dark:bg-black px-4 text-xs text-gray-400 uppercase tracking-widest">or</span>
-            <div className="absolute top-1/2 left-0 w-full border-t border-gray-200 dark:border-gray-800 -z-10"></div>
+          <div className="relative my-8 flex items-center justify-center">
+            <div className="absolute w-full border-t border-gray-200 dark:border-gray-800"></div>
+            <span className="bg-white dark:bg-black px-4 text-xs text-gray-400 uppercase tracking-widest relative z-10">or</span>
           </div>
 
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center gap-3 border border-gray-300 dark:border-white py-4 text-sm font-bold uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-white hover:text-black dark:hover:text-black transition-all text-black dark:text-white"
-          >
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 bg-white rounded-full" />
-            Continue with Google
-          </button>
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              className="w-full flex items-center justify-center gap-3 border border-gray-300 dark:border-gray-700 py-4 text-sm font-bold uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-gray-900 transition-all text-black dark:text-white"
+            >
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 bg-white rounded-full p-0.5" />
+              Continue with Google
+            </button>
+            
+            <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 p-4 text-center space-y-2 mt-4">
+              <p className="text-xs text-black dark:text-white font-bold uppercase tracking-wider">Verification Policy</p>
+              <p className="text-[11px] text-gray-500 leading-relaxed">
+                <span className="text-black dark:text-white font-medium">@aits-tpt.edu.in</span> emails are instantly verified. 
+                <br />Personal Google accounts require a 1-time admin approval.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

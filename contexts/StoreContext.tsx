@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { subscribeToStoreSettings, updateStoreStatus } from '../services/firestoreService';
+import { getStoreSettings, updateStoreStatus } from '../services/firestoreService';
 
 interface StoreContextType {
   isStoreOpen: boolean;
   loading: boolean;
   setStoreOpen: (isOpen: boolean) => Promise<void>;
+  refreshStoreSettings: () => Promise<void>;
 }
 
 const StoreContext = createContext<StoreContextType>({} as StoreContextType);
@@ -15,18 +16,25 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isStoreOpen, setIsStoreOpen] = useState(true);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const unsubscribe = subscribeToStoreSettings((status) => {
+  const fetchSettings = async () => {
+    try {
+      const status = await getStoreSettings();
       setIsStoreOpen(status);
+    } catch (e) {
+      console.error(e);
+    } finally {
       setLoading(false);
-    });
+    }
+  };
 
-    return () => unsubscribe();
+  useEffect(() => {
+    fetchSettings();
   }, []);
 
   const setStoreOpen = async (isOpen: boolean) => {
     try {
       await updateStoreStatus(isOpen);
+      setIsStoreOpen(isOpen); // Optimistic update
     } catch (e) {
       console.error("Failed to update store status", e);
       throw e;
@@ -34,7 +42,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   return (
-    <StoreContext.Provider value={{ isStoreOpen, loading, setStoreOpen }}>
+    <StoreContext.Provider value={{ isStoreOpen, loading, setStoreOpen, refreshStoreSettings: fetchSettings }}>
       {children}
     </StoreContext.Provider>
   );

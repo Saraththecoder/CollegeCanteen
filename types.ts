@@ -12,6 +12,7 @@ export interface UserProfile {
   role: UserRole;
   createdAt: Timestamp;
   favorites?: string[]; // Array of MenuItem IDs
+  verified?: boolean;
 }
 
 export enum ProductCategory {
@@ -73,4 +74,5 @@ export interface Order {
   slotId: string;
   transactionId: string; // UPI UTR or Transaction ID
   createdAt: Timestamp;
+  expireAt?: Timestamp;
 }

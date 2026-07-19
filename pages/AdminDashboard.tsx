@@ -2,16 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useStore } from '../contexts/StoreContext';
 import { 
-  subscribeToAllOrders, 
+  subscribeToActiveOrders, 
+  getPaginatedOrders,
   updateOrderStatus, 
   getAllMenuItemsAdmin,
   updateMenuItem,
   addMenuItem,
-  deleteMenuItem
+  deleteMenuItem,
+  getUnverifiedUsers,
+  verifyUserAccount
 } from '../services/firestoreService';
-import { Order, OrderStatus, MenuItem, ProductCategory } from '../types';
+import { Order, OrderStatus, MenuItem, ProductCategory, UserProfile } from '../types';
 import { formatTime, formatPrice } from '../utils/formatters';
-import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2, TrendingUp, DollarSign, CreditCard } from 'lucide-react';
+import { Coffee, Copy, Check, Phone, Power, Loader2, Package, Plus, Trash2, Save, X, Edit2, TrendingUp, DollarSign, CreditCard, AlertCircle, UserCheck } from 'lucide-react';
 import { WelcomeToast } from '../components/WelcomeToast';
 import { SuccessScreen } from '../components/SuccessScreen';
 
@@ -20,11 +23,16 @@ export const AdminDashboard: React.FC = () => {
   const { isStoreOpen, setStoreOpen } = useStore();
   
   // View State
-  const [currentView, setCurrentView] = useState<'orders' | 'inventory'>('orders');
+  const [currentView, setCurrentView] = useState<'orders' | 'inventory' | 'verification'>('orders');
   
   // Orders State
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [activeOrders, setActiveOrders] = useState<Order[]>([]);
+  const [historicalOrders, setHistoricalOrders] = useState<Order[]>([]);
   const [activeOrderTab, setActiveOrderTab] = useState<'active' | 'completed'>('active');
+  const [dateRange, setDateRange] = useState<'today' | 'week' | 'all'>('today');
+  const [lastVisibleOrder, setLastVisibleOrder] = useState<any>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreOrders, setHasMoreOrders] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   
   // Store Toggle State
@@ -36,6 +44,9 @@ export const AdminDashboard: React.FC = () => {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editPrice, setEditPrice] = useState<string>('');
   
+  // Verification State
+  const [unverifiedUsers, setUnverifiedUsers] = useState<UserProfile[]>([]);
+
   // Add Item Form State
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -63,18 +74,39 @@ export const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     if (!isAdmin) return;
-    const unsubscribe = subscribeToAllOrders((data) => {
-      setOrders(data);
+    const unsubscribeOrders = subscribeToActiveOrders((data) => {
+      setActiveOrders(data);
     });
-    return () => unsubscribe();
+    
+    // Load unverified users once
+    getUnverifiedUsers().then(setUnverifiedUsers).catch(console.error);
+    
+    // Load inventory to enable price mismatch checks
+    loadInventory();
+    return () => {
+      unsubscribeOrders();
+    };
   }, [isAdmin]);
 
-  // Load inventory when switching to inventory view
+  const loadHistoricalOrders = async (reset = false) => {
+    setIsLoadingMore(true);
+    const { orders: fetchedOrders, lastVisible } = await getPaginatedOrders(
+      dateRange,
+      reset ? null : lastVisibleOrder
+    );
+    
+    const filtered = fetchedOrders.filter(o => [OrderStatus.COMPLETED, OrderStatus.CANCELLED].includes(o.status));
+
+    setHistoricalOrders(prev => reset ? filtered : [...prev, ...filtered]);
+    setLastVisibleOrder(lastVisible);
+    setHasMoreOrders(fetchedOrders.length === 50);
+    setIsLoadingMore(false);
+  };
+
   useEffect(() => {
-    if (currentView === 'inventory' && isAdmin) {
-      loadInventory();
-    }
-  }, [currentView, isAdmin]);
+    if (!isAdmin) return;
+    loadHistoricalOrders(true);
+  }, [isAdmin, dateRange]);
 
   const loadInventory = async () => {
     setIsInventoryLoading(true);
@@ -191,20 +223,19 @@ export const AdminDashboard: React.FC = () => {
     loadInventory();
   };
 
-  const activeOrders = orders.filter(o => [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY].includes(o.status));
-  const completedOrders = orders.filter(o => [OrderStatus.COMPLETED, OrderStatus.CANCELLED].includes(o.status));
-  const displayOrders = activeOrderTab === 'active' ? activeOrders : completedOrders;
+  const displayOrders = activeOrderTab === 'active' ? activeOrders : historicalOrders;
 
   // --- STATISTICS CALCULATION ---
-  const verifiedRevenue = orders
+  const combinedOrders = [...activeOrders, ...historicalOrders];
+  const verifiedRevenue = combinedOrders
     .filter(o => [OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.COMPLETED].includes(o.status))
     .reduce((sum, o) => sum + o.totalAmount, 0);
 
-  const pendingRevenue = orders
+  const pendingRevenue = combinedOrders
     .filter(o => o.status === OrderStatus.PENDING)
     .reduce((sum, o) => sum + o.totalAmount, 0);
 
-  const totalOrdersCount = orders.filter(o => o.status !== OrderStatus.CANCELLED).length;
+  const totalOrdersCount = combinedOrders.filter(o => o.status !== OrderStatus.CANCELLED).length;
 
   return (
     <div className="space-y-8 pb-20">
@@ -237,6 +268,16 @@ export const AdminDashboard: React.FC = () => {
             className={`flex items-center gap-2 px-6 py-3 text-sm font-bold uppercase tracking-widest transition-all ${currentView === 'inventory' ? 'bg-black dark:bg-white text-white dark:text-black' : 'bg-gray-100 dark:bg-gray-900 text-gray-500 hover:text-black dark:hover:text-white'}`}
           >
             <Package className="w-4 h-4" /> Inventory
+          </button>
+
+          <button
+            onClick={() => setCurrentView('verification')}
+            className={`flex items-center gap-2 px-6 py-3 text-sm font-bold uppercase tracking-widest transition-all ${currentView === 'verification' ? 'bg-black dark:bg-white text-white dark:text-black' : 'bg-gray-100 dark:bg-gray-900 text-gray-500 hover:text-black dark:hover:text-white'}`}
+          >
+            <UserCheck className="w-4 h-4" /> Verification
+            {unverifiedUsers.length > 0 && (
+              <span className="ml-2 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{unverifiedUsers.length}</span>
+            )}
           </button>
 
           {/* Store Controls */}
@@ -457,30 +498,62 @@ export const AdminDashboard: React.FC = () => {
       {/* --- ORDERS VIEW --- */}
       {currentView === 'orders' && (
         <div className="space-y-8 animate-fade-in">
-          <div className="flex gap-8 border-b border-gray-200 dark:border-gray-800">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 dark:border-gray-800 pb-4">
+            <div className="flex gap-8">
               <button 
                 onClick={() => setActiveOrderTab('active')}
-                className={`pb-4 text-sm font-bold uppercase tracking-widest transition-all duration-300 ${activeOrderTab === 'active' ? 'border-b-2 border-black dark:border-white text-black dark:text-white' : 'border-transparent text-gray-500 hover:text-black dark:hover:text-white'}`}
+                className={`pb-4 text-sm font-bold uppercase tracking-widest transition-all duration-300 ${activeOrderTab === 'active' ? 'border-b-2 border-black dark:border-white text-black dark:text-white -mb-4' : 'border-transparent text-gray-500 hover:text-black dark:hover:text-white'}`}
               >
                 Live Orders ({activeOrders.length})
               </button>
               <button 
                 onClick={() => setActiveOrderTab('completed')}
-                className={`pb-4 text-sm font-bold uppercase tracking-widest transition-all duration-300 ${activeOrderTab === 'completed' ? 'border-b-2 border-black dark:border-white text-black dark:text-white' : 'border-transparent text-gray-500 hover:text-black dark:hover:text-white'}`}
+                className={`pb-4 text-sm font-bold uppercase tracking-widest transition-all duration-300 ${activeOrderTab === 'completed' ? 'border-b-2 border-black dark:border-white text-black dark:text-white -mb-4' : 'border-transparent text-gray-500 hover:text-black dark:hover:text-white'}`}
               >
                 Archive
               </button>
+            </div>
+            
+            {activeOrderTab === 'completed' && (
+              <div className="flex gap-2">
+                {(['today', 'week', 'all'] as const).map(range => (
+                  <button
+                    key={range}
+                    onClick={() => setDateRange(range)}
+                    className={`px-3 py-1.5 text-xs font-bold uppercase tracking-widest border transition-colors ${dateRange === range ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white' : 'border-gray-300 dark:border-gray-700 text-gray-500 hover:border-black dark:hover:border-white'}`}
+                  >
+                    {range === 'today' ? "Today" : range === 'week' ? "This Week" : "All Time"}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {displayOrders.length === 0 && (
+            {displayOrders.length === 0 && !isLoadingMore && (
               <div className="col-span-full text-center py-24 border border-dashed border-gray-300 dark:border-gray-800 animate-fade-in">
                 <Coffee className="w-8 h-8 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-500 font-mono text-sm">No orders in queue.</p>
+                <p className="text-gray-500 font-mono text-sm">No orders found.</p>
               </div>
             )}
             
-            {displayOrders.map(order => (
+            {displayOrders.map(order => {
+              // --- Price Mismatch Detection ---
+              let recomputedTotal = 0;
+              let isMismatch = false;
+              if (order.status === OrderStatus.PENDING) {
+                recomputedTotal = order.items.reduce((sum, item) => {
+                  const liveItem = menuItems.find(m => m.id === item.menuItemId);
+                  const price = liveItem ? liveItem.price : item.price;
+                  return sum + (price * item.quantity);
+                }, 0);
+                
+                if (Math.abs(recomputedTotal - order.totalAmount) > 0.01) {
+                  isMismatch = true;
+                }
+              }
+
+              return (
               <div key={order.id} className={`bg-white dark:bg-black border p-6 transition-all duration-500 animate-fade-in relative ${order.status === OrderStatus.READY ? 'border-black dark:border-white ring-1 ring-black dark:ring-white shadow-xl' : 'border-gray-200 dark:border-gray-800'}`}>
                 {order.status === OrderStatus.READY && (
                     <div className="absolute top-0 left-0 right-0 bg-black dark:bg-white text-white dark:text-black text-xs font-bold text-center py-1 uppercase tracking-widest animate-pop">Ready for Pickup</div>
@@ -500,9 +573,21 @@ export const AdminDashboard: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-mono font-medium text-black dark:text-white">{formatTime(order.scheduledTime)}</p>
-                    <p className="text-xs text-gray-400 font-mono mt-1">{formatPrice(order.totalAmount)}</p>
+                    <p className={`text-xs font-mono mt-1 ${isMismatch ? 'text-red-500 font-bold' : 'text-gray-400'}`}>{formatPrice(order.totalAmount)}</p>
                   </div>
                 </div>
+
+                {isMismatch && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 p-3 mb-4 flex flex-col">
+                    <span className="text-red-600 dark:text-red-400 text-xs font-bold uppercase tracking-wider flex items-center">
+                      <AlertCircle className="w-4 h-4 mr-1" /> ⚠️ Price Mismatch
+                    </span>
+                    <span className="text-red-600 dark:text-red-400 text-xs mt-1">
+                      Customer total: {formatPrice(order.totalAmount)} <br/>
+                      Actual total: {formatPrice(recomputedTotal)}
+                    </span>
+                  </div>
+                )}
 
                 {/* Transaction ID Display */}
                 <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-2 mb-4 flex items-center justify-between">
@@ -532,8 +617,19 @@ export const AdminDashboard: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   {order.status === OrderStatus.PENDING && (
                     <button 
-                      onClick={() => handleStatusUpdate(order.id, OrderStatus.CONFIRMED)}
-                      className="col-span-2 flex items-center justify-center gap-2 bg-black dark:bg-white text-white dark:text-black py-3 text-xs font-bold uppercase tracking-widest hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors duration-200"
+                      onClick={() => {
+                        if (isMismatch) {
+                          if (!window.confirm(`Warning: Price mismatch detected (Actual: ${formatPrice(recomputedTotal)}, Paid: ${formatPrice(order.totalAmount)}). Are you sure you want to verify and accept this order?`)) {
+                            return;
+                          }
+                        }
+                        handleStatusUpdate(order.id, OrderStatus.CONFIRMED);
+                      }}
+                      className={`col-span-2 flex items-center justify-center gap-2 py-3 text-xs font-bold uppercase tracking-widest transition-colors duration-200 ${
+                        isMismatch 
+                          ? 'bg-red-600 text-white hover:bg-red-700' 
+                          : 'bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200'
+                      }`}
                     >
                       Verify & Accept
                     </button>
@@ -572,6 +668,62 @@ export const AdminDashboard: React.FC = () => {
                     </button>
                   )}
                 </div>
+              </div>
+              );
+            })}
+          </div>
+
+          {activeOrderTab === 'completed' && hasMoreOrders && (
+            <div className="flex justify-center pt-8">
+              <button
+                onClick={() => loadHistoricalOrders()}
+                disabled={isLoadingMore}
+                className="px-8 py-3 text-sm font-bold uppercase tracking-widest border border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {isLoadingMore ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Load More
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* --- VERIFICATION VIEW --- */}
+      {currentView === 'verification' && (
+        <div className="space-y-8 animate-fade-in">
+          <div className="border-b border-gray-200 dark:border-gray-800 pb-4">
+            <h2 className="text-2xl font-serif font-bold text-black dark:text-white">Pending Verification</h2>
+            <p className="text-gray-500 text-sm mt-1">Review and approve accounts from non-college email domains.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {unverifiedUsers.length === 0 && (
+              <div className="col-span-full text-center py-24 border border-dashed border-gray-300 dark:border-gray-800 animate-fade-in">
+                <UserCheck className="w-8 h-8 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-500 font-mono text-sm">No users pending verification.</p>
+              </div>
+            )}
+
+            {unverifiedUsers.map(u => (
+              <div key={u.uid} className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 p-6 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-bold text-lg text-black dark:text-white">{u.displayName}</h3>
+                  <p className="text-gray-500 text-sm font-mono mt-1">{u.email}</p>
+                  <p className="text-gray-400 text-xs mt-2">Joined: {u.createdAt?.toDate().toLocaleDateString()}</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    try {
+                      await verifyUserAccount(u.uid);
+                    } catch (e) {
+                      console.error("Failed to verify user", e);
+                      alert("Verification failed. Please check permissions.");
+                    }
+                  }}
+                  className="mt-6 w-full flex items-center justify-center gap-2 bg-black dark:bg-white text-white dark:text-black py-3 text-xs font-bold uppercase tracking-widest hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors duration-200"
+                >
+                  <Check className="w-4 h-4" /> Verify Account
+                </button>
               </div>
             ))}
           </div>

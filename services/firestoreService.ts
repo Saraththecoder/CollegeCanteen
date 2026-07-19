@@ -13,10 +13,14 @@ import {
   setDoc,
   getDoc,
   arrayUnion,
-  arrayRemove
+  arrayRemove,
+  serverTimestamp,
+  orderBy,
+  limit,
+  startAfter
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { MenuItem, Order, OrderStatus, TimeSlot, ProductCategory } from '../types';
+import { MenuItem, Order, OrderStatus, TimeSlot, ProductCategory, UserProfile } from '../types';
 import { MAX_ORDERS_PER_SLOT } from '../constants';
 
 // Mock data for fallback when Firestore permissions are missing
@@ -31,21 +35,20 @@ export const MOCK_MENU_ITEMS: MenuItem[] = [
 
 // --- SETTINGS ---
 
-export const subscribeToStoreSettings = (callback: (isOpen: boolean) => void) => {
+export const getStoreSettings = async (): Promise<boolean> => {
   const docRef = doc(db, 'settings', 'general');
-  return onSnapshot(docRef, (doc) => {
-    if (doc.exists()) {
-      const data = doc.data();
-      callback(data.isStoreOpen !== undefined ? data.isStoreOpen : true);
-    } else {
-      callback(true);
+  try {
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      return data.isStoreOpen !== undefined ? data.isStoreOpen : true;
     }
-  }, (error) => {
+  } catch (error: any) {
     if (error.code !== 'permission-denied') {
-      console.warn("Store settings sync warning:", error.code);
+      console.warn("Store settings fetch warning:", error.code);
     }
-    callback(true);
-  });
+  }
+  return true; // Default to open
 };
 
 export const updateStoreStatus = async (isOpen: boolean) => {
@@ -54,13 +57,25 @@ export const updateStoreStatus = async (isOpen: boolean) => {
 };
 
 // --- MENU ---
-export const getMenuItems = async (): Promise<MenuItem[]> => {
+let cachedMenuItems: MenuItem[] | null = null;
+let lastMenuFetchTime: number = 0;
+const MENU_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+export const getMenuItems = async (forceRefresh = false): Promise<MenuItem[]> => {
+  const now = Date.now();
+  if (!forceRefresh && cachedMenuItems && (now - lastMenuFetchTime) < MENU_CACHE_TTL_MS) {
+    return cachedMenuItems;
+  }
+
   try {
     const q = query(collection(db, 'menuItems'), where('isAvailable', '==', true));
     const querySnapshot = await getDocs(q);
     
     if (!querySnapshot.empty) {
-      return querySnapshot.docs.map(d => ({ id: d.id, ...d.data() } as MenuItem));
+      const items = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() } as MenuItem));
+      cachedMenuItems = items;
+      lastMenuFetchTime = now;
+      return items;
     }
     
     return [];
@@ -199,10 +214,18 @@ export const createOrder = async (
         scheduledTime: Timestamp.fromDate(slotDate),
         slotId,
         transactionId,
-        createdAt: Timestamp.now()
+        createdAt: Timestamp.now(),
+        expireAt: Timestamp.fromMillis(Date.now() + 180 * 24 * 60 * 60 * 1000)
       };
       
       transaction.set(newOrderRef, newOrder);
+
+      // --- Rate Limiting: Update user's lastOrderTime ---
+      const userRef = doc(db, 'users', userId);
+      transaction.update(userRef, {
+        lastOrderTime: serverTimestamp()
+      });
+
       return newOrderRef.id;
     });
     return orderId;
@@ -213,10 +236,58 @@ export const createOrder = async (
 };
 
 // --- USER ORDERS ---
-export const subscribeToUserOrders = (userId: string, callback: (orders: Order[]) => void) => {
+export const subscribeToOrder = (orderId: string, callback: (order: Order | null) => void) => {
+  return onSnapshot(doc(db, 'orders', orderId), (docSnapshot) => {
+    if (docSnapshot.exists()) {
+      callback({ id: docSnapshot.id, ...docSnapshot.data() } as Order);
+    } else {
+      callback(null);
+    }
+  }, (error) => {
+    console.error("Order doc subscription failed", error);
+    callback(null);
+  });
+};
+
+export const getUserOrders = async (userId: string): Promise<Order[]> => {
   const q = query(
     collection(db, 'orders'), 
     where('userId', '==', userId)
+  );
+  
+  try {
+    const snapshot = await getDocs(q);
+    const orders = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Order));
+    orders.sort((a, b) => {
+       const tA = a.createdAt?.toMillis() || 0;
+       const tB = b.createdAt?.toMillis() || 0;
+       return tB - tA;
+    });
+    return orders;
+  } catch (error) {
+    console.error("Order fetch failed", error);
+    return [];
+  }
+};
+
+// --- USER VERIFICATION ---
+export const getUnverifiedUsers = async (): Promise<UserProfile[]> => {
+  const usersRef = collection(db, 'users');
+  const q = query(usersRef, where('verified', '==', false));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id } as UserProfile));
+};
+
+export const verifyUserAccount = async (userId: string): Promise<void> => {
+  const userRef = doc(db, 'users', userId);
+  await updateDoc(userRef, { verified: true });
+};
+
+// --- ADMIN ---
+export const subscribeToActiveOrders = (callback: (orders: Order[]) => void) => {
+  const q = query(
+    collection(db, 'orders'),
+    where('status', 'in', [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY])
   );
   
   return onSnapshot(q, (snapshot) => {
@@ -228,27 +299,41 @@ export const subscribeToUserOrders = (userId: string, callback: (orders: Order[]
     });
     callback(orders);
   }, (error) => {
-    console.error("Order subscription failed", error);
+    console.error("Admin active orders subscription failed", error);
     callback([]);
   });
 };
 
-// --- ADMIN ---
-export const subscribeToAllOrders = (callback: (orders: Order[]) => void) => {
-  const q = query(collection(db, 'orders'));
+export const getPaginatedOrders = async (
+  dateRange: 'today' | 'week' | 'all',
+  lastDoc: any = null
+): Promise<{ orders: Order[], lastVisible: any }> => {
+  let q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(50));
   
-  return onSnapshot(q, (snapshot) => {
+  if (dateRange === 'today') {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    q = query(q, where('createdAt', '>=', Timestamp.fromDate(startOfDay)));
+  } else if (dateRange === 'week') {
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - 7);
+    startOfWeek.setHours(0, 0, 0, 0);
+    q = query(q, where('createdAt', '>=', Timestamp.fromDate(startOfWeek)));
+  }
+
+  if (lastDoc) {
+    q = query(q, startAfter(lastDoc));
+  }
+
+  try {
+    const snapshot = await getDocs(q);
     const orders = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Order));
-    orders.sort((a, b) => {
-       const tA = a.createdAt?.toMillis() || 0;
-       const tB = b.createdAt?.toMillis() || 0;
-       return tB - tA;
-    });
-    callback(orders);
-  }, (error) => {
-    console.error("Admin subscription failed", error);
-    callback([]);
-  });
+    const lastVisible = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
+    return { orders, lastVisible };
+  } catch (error) {
+    console.error("Paginated orders fetch failed", error);
+    return { orders: [], lastVisible: null };
+  }
 };
 
 export const updateOrderStatus = async (orderId: string, status: OrderStatus) => {

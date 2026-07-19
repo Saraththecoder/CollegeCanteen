@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { subscribeToUserOrders } from '../services/firestoreService';
+import { getUserOrders, subscribeToOrder } from '../services/firestoreService';
 import { Order, OrderStatus } from '../types';
 import { formatPrice, formatDate, formatTime } from '../utils/formatters';
 import { Loader2, Package, Clock, CheckCircle, Utensils, Check, XCircle, ArrowRight } from 'lucide-react';
@@ -76,14 +76,34 @@ export const Orders: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchOrders = async () => {
     if (!user) return;
-    const unsubscribe = subscribeToUserOrders(user.uid, (data) => {
-      setOrders(data);
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    setLoading(true);
+    const fetchedOrders = await getUserOrders(user.uid);
+    setOrders(fetchedOrders);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchOrders();
   }, [user]);
+
+  useEffect(() => {
+    if (orders.length === 0) return;
+    
+    const active = orders.filter(o => [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY].includes(o.status));
+    const unsubscribes = active.map(o => {
+      return subscribeToOrder(o.id, (updatedOrder) => {
+        if (updatedOrder) {
+          setOrders(prev => prev.map(p => p.id === updatedOrder.id ? updatedOrder : p));
+        }
+      });
+    });
+    
+    return () => {
+      unsubscribes.forEach(unsub => unsub());
+    };
+  }, [orders.length]); // Re-run subscription setup when orders length changes (e.g. initial fetch)
 
   if (loading) return <div className="flex justify-center py-32"><Loader2 className="animate-spin w-6 h-6 text-black dark:text-white" /></div>;
 

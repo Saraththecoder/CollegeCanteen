@@ -8,9 +8,9 @@ import {
   updateProfile
 } from 'firebase/auth';
 import { auth, googleProvider, db } from '../firebase';
-import { ADMIN_EMAIL, ROUTES } from '../constants';
+import { ROUTES } from '../constants';
 import { UserProfile, UserRole } from '../types';
-import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 
 // --- Simple Router Implementation (Replaces react-router-dom) ---
@@ -144,17 +144,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    let unsubscribeUserDoc: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          // Sync user to Firestore
           const userRef = doc(db, 'users', firebaseUser.uid);
           const userSnap = await getDoc(userRef);
           
           let role = UserRole.USER;
-          if (firebaseUser.email === ADMIN_EMAIL) {
-            role = UserRole.ADMIN;
+          if (userSnap.exists() && userSnap.data().role) {
+            role = userSnap.data().role;
           }
+
+          const isCollegeEmail = firebaseUser.email?.toLowerCase().endsWith('@aits-tpt.edu.in') ?? false;
+          const verified = userSnap.exists() && userSnap.data().verified !== undefined 
+            ? userSnap.data().verified 
+            : isCollegeEmail;
 
           // Define profile data
           const profile: UserProfile = {
@@ -162,27 +168,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             email: firebaseUser.email || '',
             displayName: firebaseUser.displayName || 'User',
             role,
+            verified,
             createdAt: userSnap.exists() ? userSnap.data().createdAt : Timestamp.now(),
           };
 
           // If new user (or just created via Auth), ensure doc exists
           if (!userSnap.exists()) {
             await setDoc(userRef, profile);
+          } else {
+            setUser(profile);
           }
 
-          setUser(profile);
+          // Listen for real-time updates to the user profile (e.g., admin verification)
+          unsubscribeUserDoc = onSnapshot(userRef, (docSnap) => {
+            if (docSnap.exists()) {
+              setUser(docSnap.data() as UserProfile);
+            }
+          });
+
           setError(null);
         } catch (err: any) {
           console.error("Error syncing user profile:", err);
-          // Don't block app usage, but log it
         }
       } else {
         setUser(null);
+        if (unsubscribeUserDoc) {
+          unsubscribeUserDoc();
+          unsubscribeUserDoc = null;
+        }
       }
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeUserDoc) unsubscribeUserDoc();
+    };
   }, []);
 
   const handleError = (err: any) => {

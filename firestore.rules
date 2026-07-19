@@ -10,6 +10,10 @@ service cloud.firestore {
       return request.auth != null;
     }
     
+    function isVerifiedUser() {
+      return isAuthenticated() && (request.auth.token.email_verified == true || request.auth.token.phone_number != null);
+    }
+
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
@@ -17,7 +21,7 @@ service cloud.firestore {
     function isAdmin() {
       // Securely check admin status via token or specific user document
       return isAuthenticated() && 
-             (request.auth.token.email == 'admin@canteen.com' || 
+             ((request.auth.token.email == 'admin@canteen.com' && request.auth.token.email_verified == true) || 
               (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
                get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN'));
     }
@@ -35,6 +39,20 @@ service cloud.firestore {
     
     function isValidPhone(phone) {
        return isString(phone) && phone.size() >= 10 && phone.size() <= 15;
+    }
+
+    // Add check for verified status
+    function isAccountVerified() {
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return ('verified' in userDoc.data) && userDoc.data.verified == true;
+    }
+
+    // Rate Limiting Helper
+    // Firestore allows up to 20 document access calls (like get(), exists()) per rules evaluation.
+    // We use one here to fetch the user's lastOrderTime.
+    function isRateLimited() {
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return ('lastOrderTime' in userDoc.data) && request.time < userDoc.data.lastOrderTime + duration.value(15, 's');
     }
 
     // ==========================================
@@ -55,11 +73,20 @@ service cloud.firestore {
                        isOwner(userId) &&
                        request.resource.data.keys().hasAll(['email', 'displayName', 'role']) &&
                        // Prevent role spoofing
-                       request.resource.data.role == 'USER';
+                       request.resource.data.role == 'USER' &&
+                       // Ensure verified is set correctly
+                       request.resource.data.verified == (request.auth.token.email.matches('.*@aits-tpt[.]edu[.]in$'));
       
-      allow update: if isOwner(userId) &&
-                       // Prevent role escalation
-                       request.resource.data.role == resource.data.role;
+      allow update: if (isOwner(userId) &&
+                       (
+                         // Normal update (no role change, no manual lastOrderTime spoofing, no manual verified change)
+                         (request.resource.data.role == resource.data.role && 
+                          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastOrderTime', 'verified']))
+                         ||
+                         // Rate limit update (only lastOrderTime updated to current server time)
+                         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastOrderTime']) &&
+                          request.resource.data.lastOrderTime == request.time)
+                       )) || isAdmin();
       
       allow delete: if isAdmin();
     }
@@ -79,7 +106,8 @@ service cloud.firestore {
       allow read: if isAdmin() || 
                      (isAuthenticated() && resource.data.userId == request.auth.uid);
       
-      allow create: if isAuthenticated() &&
+      allow create: if isVerifiedUser() &&
+                       isAccountVerified() &&
                        request.resource.data.userId == request.auth.uid &&
                        // 1. Validate Amounts
                        isValidAmount(request.resource.data.totalAmount) &&
@@ -94,7 +122,13 @@ service cloud.firestore {
                        // 4. Validate Contact Info
                        isNotEmpty(request.resource.data.customerName) &&
                        request.resource.data.customerName.size() < 100 &&
-                       isValidPhone(request.resource.data.customerMobile);
+                       isValidPhone(request.resource.data.customerMobile) &&
+                       
+                       // 5. Enforce Rate Limiting
+                       !isRateLimited() &&
+                       
+                       // 6. Enforce transaction updates lastOrderTime
+                       getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.lastOrderTime == request.time;
       
       // Only Admin can change status to CONFIRMED/READY
       // User can only CANCEL
