@@ -130,6 +130,7 @@ export const Checkout: React.FC = () => {
       } else {
         setGlobalError("Failed to create order. Please try again.");
       }
+      throw err; // Re-throw so child components can reset loading state
     }
   };
 

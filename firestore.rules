@@ -106,7 +106,7 @@ service cloud.firestore {
       allow read: if isAdmin() || 
                      (isAuthenticated() && resource.data.userId == request.auth.uid);
       
-      allow create: if isVerifiedUser() &&
+      allow create: if isAuthenticated() &&
                        isAccountVerified() &&
                        request.resource.data.userId == request.auth.uid &&
                        // 1. Validate Amounts
