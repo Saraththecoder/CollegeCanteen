@@ -1,5 +1,6 @@
 {
   "name": "AITS CANTEEN",
   "description": "A premium, minimalist canteen ordering system focusing on speed, accessibility, and robust order management.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
